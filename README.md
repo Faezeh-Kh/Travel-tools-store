@@ -100,8 +100,12 @@ npm run build
 
 ## API documentation
 
-Not yet published as OpenAPI/Swagger — that tooling is still to be added; tracked as an open gap for Phase 2. Endpoints
-implemented so far:
+Published via springdoc-openapi while the backend is running:
+
+- OpenAPI 3.1 document: `http://localhost:8080/v3/api-docs`
+- Interactive Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+
+Endpoints implemented so far:
 
 | Method | Path | Description |
 | --- | --- | --- |
