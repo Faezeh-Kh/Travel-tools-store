@@ -2,7 +2,8 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phase 2 (Product/Variant/Category) — in progress. Categories are readable via a public API; Product/Variant persistence and endpoints, and admin management of all three, are not implemented yet.
+**Status:** Phase 2 (Product/Variant/Category) — in progress. Categories and Products/Variants are readable via public APIs;
+admin management (create/update/deactivate) of all three is deferred to Phase 7, once authentication exists.
 
 ## Architecture and stack
 
@@ -110,3 +111,9 @@ Endpoints implemented so far:
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/api/categories` | List active categories, ordered by name. |
+| GET | `/api/products` | List active products with a per-product price (or min/max range across active variants), ordered by name. |
+| GET | `/api/products/{slug}` | Product detail: full description, images, specifications, category, and active purchasable variants. 404 if the slug is unknown or the product is inactive. |
+
+Errors use a consistent JSON shape (`{timestamp, status, code, message, fieldErrors}`) for both application errors (e.g. an
+unknown product slug) and framework-level ones (unmapped routes, wrong HTTP methods), via a global exception handler that
+hides internal exception/database details.
