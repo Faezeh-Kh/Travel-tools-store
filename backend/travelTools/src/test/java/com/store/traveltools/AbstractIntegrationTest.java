@@ -6,7 +6,7 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @Testcontainers
-abstract class AbstractIntegrationTest {
+public abstract class AbstractIntegrationTest {
 
     @Container
     @ServiceConnection

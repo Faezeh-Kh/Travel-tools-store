@@ -2,7 +2,7 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phase 1 (Foundation) — repository, applications, database, and testing infrastructure only. No product/cart/checkout/admin features yet.
+**Status:** Phase 2 (Product/Variant/Category) — in progress. Categories are readable via a public API; Product/Variant persistence and endpoints, and admin management of all three, are not implemented yet.
 
 ## Architecture and stack
 
@@ -54,7 +54,7 @@ cd backend/travelTools
 ./mvnw spring-boot:run
 ```
 
-Schema is managed exclusively by Flyway migrations under `src/main/resources/db/migration` (none yet — no domain tables exist in this phase).
+Schema is managed exclusively by Flyway migrations under `src/main/resources/db/migration`.
 
 ### Backend tests
 
@@ -100,4 +100,9 @@ npm run build
 
 ## API documentation
 
-Not yet published. OpenAPI/Swagger documentation will be added alongside the first public API (Phase 2 — Product/Variant/Category).
+Not yet published as OpenAPI/Swagger — that tooling is still to be added; tracked as an open gap for Phase 2. Endpoints
+implemented so far:
+
+| Method | Path | Description |
+| --- | --- | --- |
+| GET | `/api/categories` | List active categories, ordered by name. |
