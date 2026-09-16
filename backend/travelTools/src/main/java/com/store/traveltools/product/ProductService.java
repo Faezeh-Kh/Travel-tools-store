@@ -1,19 +1,18 @@
 package com.store.traveltools.product;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import org.jspecify.annotations.Nullable;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.store.traveltools.common.exception.NotFoundException;
 import com.store.traveltools.product.ProductVariantRepository.ActivePriceRange;
 import com.store.traveltools.product.dto.ProductDetailResponse;
 import com.store.traveltools.product.dto.ProductSummaryResponse;
 import com.store.traveltools.product.dto.ProductVariantResponse;
+import org.jspecify.annotations.Nullable;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,6 +24,30 @@ public class ProductService {
     public ProductService(ProductRepository productRepository, ProductVariantRepository productVariantRepository) {
         this.productRepository = productRepository;
         this.productVariantRepository = productVariantRepository;
+    }
+
+    private static ProductSummaryResponse toSummary(Product product, @Nullable ActivePriceRange priceRange) {
+        String primaryImage = product.getImages().isEmpty() ? null : product.getImages().getFirst();
+        BigDecimal minPrice = priceRange != null ? priceRange.getMinPrice() : null;
+        BigDecimal maxPrice = priceRange != null ? priceRange.getMaxPrice() : null;
+
+        return new ProductSummaryResponse(
+                product.getId(),
+                product.getName(),
+                product.getSlug(),
+                product.getShortDescription(),
+                primaryImage,
+                minPrice,
+                maxPrice);
+    }
+
+    private static ProductVariantResponse toVariantResponse(ProductVariant variant) {
+        return new ProductVariantResponse(
+                variant.getId(),
+                variant.getSku(),
+                variant.getAttributes(),
+                variant.getPrice(),
+                variant.getStockQuantity());
     }
 
     public List<ProductSummaryResponse> getActiveProducts() {
@@ -59,29 +82,5 @@ public class ProductService {
                 product.getCategory().getName(),
                 product.getCategory().getSlug(),
                 variants);
-    }
-
-    private static ProductSummaryResponse toSummary(Product product, @Nullable ActivePriceRange priceRange) {
-        String primaryImage = product.getImages().isEmpty() ? null : product.getImages().get(0);
-        BigDecimal minPrice = priceRange != null ? priceRange.getMinPrice() : null;
-        BigDecimal maxPrice = priceRange != null ? priceRange.getMaxPrice() : null;
-
-        return new ProductSummaryResponse(
-                product.getId(),
-                product.getName(),
-                product.getSlug(),
-                product.getShortDescription(),
-                primaryImage,
-                minPrice,
-                maxPrice);
-    }
-
-    private static ProductVariantResponse toVariantResponse(ProductVariant variant) {
-        return new ProductVariantResponse(
-                variant.getId(),
-                variant.getSku(),
-                variant.getAttributes(),
-                variant.getPrice(),
-                variant.getStockQuantity());
     }
 }
