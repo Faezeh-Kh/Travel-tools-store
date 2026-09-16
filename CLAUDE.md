@@ -52,9 +52,16 @@ screen sizes. Lazy-load images where appropriate.
 
 ## Verification and completion
 
-Every feature needs behavioral tests appropriate to its risks: business calculations/validation, persistence/services,
-API success and failure cases, authorization, and critical UI interactions. Security-sensitive behavior requires tests.
-Use PostgreSQL Testcontainers for persistence integration tests; H2 must not replace PostgreSQL-specific coverage.
+Every feature needs meaningful behavioral tests appropriate to its risks: business logic and validation, persistence and
+service behavior, API success and failure cases, authorization, and critical UI interactions. Security-sensitive
+behavior requires tests. Use PostgreSQL Testcontainers for persistence integration tests; H2 must not replace
+PostgreSQL-specific coverage.
+
+Tests must provide regression protection, not merely reproduce their setup or increase coverage. Persistence tests
+should create and control the data required for the behavior under test rather than depend on mutable Flyway seed
+content. Exercise meaningful conditions, boundaries, and negative cases where relevant. Keep responsibilities clear:
+repository tests cover persistence queries and database constraints, service tests cover application/business behavior,
+and controller tests cover HTTP/API contracts. Avoid unnecessary duplication of the same behavior across layers.
 
 For reproducible bugs, add and confirm a failing regression test before fixing when reasonable, then verify the fix and
 related tests.
@@ -62,12 +69,12 @@ related tests.
 Run targeted tests, broader tests when practical, backend compilation, frontend build/type-check, and configured
 lint/static checks. Never report unexecuted checks as passing; explain blocked verification.
 
-Completion requires implemented requirements and edge cases, validation/error handling, passing checks, current
+Completion requires implemented requirements and relevant edge cases, validation/error handling, passing checks, current
 documentation, and no unexplained placeholders or obvious security issues. Keep README/OpenAPI synchronized; document
 non-obvious contracts and decisions rather than narrating code.
 
-End with a concise account of changes, tests, commands actually run/results, significant decisions, and remaining
-issues. Do not claim completion when required checks remain unresolved.
+End with a concise account of changes, tests added or updated, commands actually run and their results, significant
+decisions, and remaining issues. Do not claim completion when required checks remain unresolved.
 
 ## Question-only requests
 
