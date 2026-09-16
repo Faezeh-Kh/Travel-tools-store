@@ -58,6 +58,18 @@ public class ProductVariant {
     protected ProductVariant() {
     }
 
+    // Package-private: lets tests in this package build fixture rows directly. Production code has
+    // no create path yet (variants are seeded via Flyway until admin CRUD lands in Phase 7).
+    ProductVariant(Product product, String sku, Map<String, String> attributes, BigDecimal price,
+            Integer stockQuantity, boolean active) {
+        this.product = product;
+        this.sku = sku;
+        this.attributes = attributes;
+        this.price = price;
+        this.stockQuantity = stockQuantity;
+        this.active = active;
+    }
+
     public Long getId() {
         return id;
     }

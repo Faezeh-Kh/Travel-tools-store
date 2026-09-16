@@ -20,16 +20,24 @@ class CategoryRepositoryTest extends AbstractIntegrationTest {
     private CategoryRepository categoryRepository;
 
     @Test
-    void findByActiveTrueOrderByNameAsc_returnsSeededCategoriesSortedByName() {
+    void findByActiveTrueOrderByNameAsc_returnsOnlyActiveCategoriesInSortedOrder() {
+        Category active = categoryRepository.save(
+                new Category("Test Active Category", "test-active-category", "Fixture for repository test.", true));
+        Category inactive = categoryRepository.save(new Category(
+                "Test Inactive Category", "test-inactive-category", "Fixture for repository test.", false));
+
         List<Category> categories = categoryRepository.findByActiveTrueOrderByNameAsc();
 
-        assertThat(categories).hasSize(5);
         assertThat(categories).allMatch(Category::isActive);
+        assertThat(categories).extracting(Category::getId).contains(active.getId());
+        assertThat(categories).extracting(Category::getId).doesNotContain(inactive.getId());
         assertThat(categories).isSortedAccordingTo(Comparator.comparing(Category::getName));
     }
 
+    // Intentionally hardcodes the V1 migration's seed values: this test's explicit purpose is
+    // verifying the initial category seed data, not generic repository query behavior.
     @Test
-    void seededCategoriesHaveTheExpectedUniqueSlugs() {
+    void v1SeedMigration_insertsExpectedCategorySlugs() {
         List<Category> categories = categoryRepository.findAll();
 
         assertThat(categories).extracting(Category::getSlug)

@@ -67,6 +67,20 @@ public class Product {
     protected Product() {
     }
 
+    // Package-private: lets tests in this package build fixture rows directly. Production code has
+    // no create path yet (products are seeded via Flyway until admin CRUD lands in Phase 7).
+    Product(Category category, String name, String slug, String shortDescription, String description,
+            List<String> images, Map<String, String> specifications, boolean active) {
+        this.category = category;
+        this.name = name;
+        this.slug = slug;
+        this.shortDescription = shortDescription;
+        this.description = description;
+        this.images = images;
+        this.specifications = specifications;
+        this.active = active;
+    }
+
     public Long getId() {
         return id;
     }

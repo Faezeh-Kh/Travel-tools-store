@@ -30,6 +30,15 @@ public class Category {
     protected Category() {
     }
 
+    // Package-private: lets tests in this package build fixture rows directly. Production code has
+    // no create path yet (categories are seeded via Flyway until admin CRUD lands in Phase 7).
+    Category(String name, String slug, String description, boolean active) {
+        this.name = name;
+        this.slug = slug;
+        this.description = description;
+        this.active = active;
+    }
+
     public Long getId() {
         return id;
     }
