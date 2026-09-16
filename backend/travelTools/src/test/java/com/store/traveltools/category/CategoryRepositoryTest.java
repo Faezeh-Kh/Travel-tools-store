@@ -1,16 +1,17 @@
 package com.store.traveltools.category;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import java.util.Comparator;
-import java.util.List;
-
+import com.store.traveltools.AbstractIntegrationTest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
+import org.springframework.dao.DataIntegrityViolationException;
 
-import com.store.traveltools.AbstractIntegrationTest;
+import java.util.Comparator;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
@@ -34,18 +35,13 @@ class CategoryRepositoryTest extends AbstractIntegrationTest {
         assertThat(categories).isSortedAccordingTo(Comparator.comparing(Category::getName));
     }
 
-    // Intentionally hardcodes the V1 migration's seed values: this test's explicit purpose is
-    // verifying the initial category seed data, not generic repository query behavior.
     @Test
-    void v1SeedMigration_insertsExpectedCategorySlugs() {
-        List<Category> categories = categoryRepository.findAll();
+    void savingCategoryWithDuplicateSlug_violatesUniqueConstraint() {
+        categoryRepository.saveAndFlush(
+                new Category("Test Category A", "test-duplicate-category-slug", "Fixture.", true));
 
-        assertThat(categories).extracting(Category::getSlug)
-                .containsExactlyInAnyOrder(
-                        "camping-shelter",
-                        "camping-furniture",
-                        "cooking-food",
-                        "lighting-power",
-                        "travel-accessories");
+        assertThatThrownBy(() -> categoryRepository.saveAndFlush(
+                new Category("Test Category B", "test-duplicate-category-slug", "Fixture.", true)))
+                .isInstanceOf(DataIntegrityViolationException.class);
     }
 }
