@@ -3,7 +3,6 @@ package com.store.traveltools.product;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,17 +47,25 @@ class ProductRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void findByActiveTrueOrderByNameAsc_returnsOnlyActiveProductsInSortedOrder() {
-        Product active = productRepository.save(new Product(testCategory, "Test Active Product",
-                "test-active-product", "Short description.", "Full description.", List.of(), Map.of(), true));
+        // Inserted in reverse alphabetical order so the assertion below actually proves the query
+        // sorts by name, rather than passing merely because insertion order happened to match.
+        Product second = productRepository.save(new Product(testCategory, "Test Active Product B",
+                "test-active-product-b", "Short description.", "Full description.", List.of(), Map.of(), true));
+        Product first = productRepository.save(new Product(testCategory, "Test Active Product A",
+                "test-active-product-a", "Short description.", "Full description.", List.of(), Map.of(), true));
         Product inactive = productRepository.save(new Product(testCategory, "Test Inactive Product",
                 "test-inactive-product", "Short description.", "Full description.", List.of(), Map.of(), false));
 
         List<Product> products = productRepository.findByActiveTrueOrderByNameAsc();
 
         assertThat(products).allMatch(Product::isActive);
-        assertThat(products).extracting(Product::getId).contains(active.getId());
         assertThat(products).extracting(Product::getId).doesNotContain(inactive.getId());
-        assertThat(products).isSortedAccordingTo(Comparator.comparing(Product::getName));
+        // Scoped to just these fixtures - not the full seeded+fixture list - so the result doesn't
+        // depend on Flyway seed content or on collation-dependent ordering across Persian/Latin scripts.
+        assertThat(products)
+                .filteredOn(product -> product.getId().equals(first.getId()) || product.getId().equals(second.getId()))
+                .extracting(Product::getId)
+                .containsExactly(first.getId(), second.getId());
     }
 
     @Test
