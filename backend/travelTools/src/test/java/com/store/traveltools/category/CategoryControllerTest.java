@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
@@ -22,15 +23,18 @@ class CategoryControllerTest {
     private CategoryService categoryService;
 
     @Test
-    void getCategories_returnsActiveCategoriesFromService() {
-        given(categoryService.getActiveCategories()).willReturn(List.of(
-                new CategoryResponse(1L, "کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.")));
+    void getCategories_returnsFullCategoryPayloadFromService() {
+        CategoryResponse category = new CategoryResponse(
+                1L, "کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.");
+        given(categoryService.getActiveCategories()).willReturn(List.of(category));
 
         mockMvc.get().uri("/api/categories")
                 .assertThat()
                 .hasStatusOk()
+                .hasContentType(MediaType.APPLICATION_JSON)
                 .bodyJson()
-                .extractingPath("$[0].slug").isEqualTo("camping-shelter");
+                .convertTo(CategoryResponse[].class)
+                .isEqualTo(new CategoryResponse[] {category});
     }
 
     @Test
