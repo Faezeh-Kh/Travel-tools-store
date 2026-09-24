@@ -23,13 +23,16 @@ class CategoryServiceTest {
     // would otherwise go completely uncaught.
     @Test
     void getActiveCategories_mapsEachEntityFieldToTheResponseInOrder() {
-        Category category = new Category("کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.", true);
+        Category category = new Category(
+                "کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.",
+                "https://example.com/images/camping-shelter.jpg", true);
         given(categoryRepository.findByActiveTrueOrderByNameAsc()).willReturn(List.of(category));
 
         CategoryService categoryService = new CategoryService(categoryRepository);
         List<CategoryResponse> result = categoryService.getActiveCategories();
 
         assertThat(result).containsExactly(new CategoryResponse(
-                category.getId(), category.getName(), category.getSlug(), category.getDescription()));
+                category.getId(), category.getName(), category.getSlug(), category.getDescription(),
+                category.getImageUrl()));
     }
 }

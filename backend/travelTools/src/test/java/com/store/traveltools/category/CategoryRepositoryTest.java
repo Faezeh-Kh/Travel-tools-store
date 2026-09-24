@@ -24,11 +24,11 @@ class CategoryRepositoryTest extends AbstractIntegrationTest {
         // Inserted in reverse alphabetical order so the assertion below actually proves the query
         // sorts by name, rather than passing merely because insertion order happened to match.
         Category second = categoryRepository.save(
-                new Category("Test Active Category B", "test-active-category-b", "Fixture.", true));
+                new Category("Test Active Category B", "test-active-category-b", "Fixture.", null, true));
         Category first = categoryRepository.save(
-                new Category("Test Active Category A", "test-active-category-a", "Fixture.", true));
+                new Category("Test Active Category A", "test-active-category-a", "Fixture.", null, true));
         Category inactive = categoryRepository.save(
-                new Category("Test Inactive Category", "test-inactive-category", "Fixture.", false));
+                new Category("Test Inactive Category", "test-inactive-category", "Fixture.", null, false));
 
         List<Category> categories = categoryRepository.findByActiveTrueOrderByNameAsc();
 
@@ -45,10 +45,31 @@ class CategoryRepositoryTest extends AbstractIntegrationTest {
     @Test
     void savingCategoryWithDuplicateSlug_violatesUniqueConstraint() {
         categoryRepository.saveAndFlush(
-                new Category("Test Category A", "test-duplicate-category-slug", "Fixture.", true));
+                new Category("Test Category A", "test-duplicate-category-slug", "Fixture.", null, true));
 
         assertThatThrownBy(() -> categoryRepository.saveAndFlush(
-                new Category("Test Category B", "test-duplicate-category-slug", "Fixture.", true)))
+                new Category("Test Category B", "test-duplicate-category-slug", "Fixture.", null, true)))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void savingCategoryWithNullImageUrl_isPersistedSuccessfully() {
+        Category saved = categoryRepository.saveAndFlush(
+                new Category("Test Category No Image", "test-category-no-image", "Fixture.", null, true));
+
+        Category found = categoryRepository.findById(saved.getId()).orElseThrow();
+
+        assertThat(found.getImageUrl()).isNull();
+    }
+
+    @Test
+    void savingCategoryWithImageUrl_persistsAndReturnsTheSameValue() {
+        Category saved = categoryRepository.saveAndFlush(new Category(
+                "Test Category With Image", "test-category-with-image", "Fixture.",
+                "https://example.com/images/test-category.jpg", true));
+
+        Category found = categoryRepository.findById(saved.getId()).orElseThrow();
+
+        assertThat(found.getImageUrl()).isEqualTo("https://example.com/images/test-category.jpg");
     }
 }

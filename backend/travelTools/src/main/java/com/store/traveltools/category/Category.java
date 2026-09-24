@@ -24,6 +24,9 @@ public class Category {
     @Column(nullable = false)
     private String description;
 
+    @Column(name = "image_url", nullable = true)
+    private String imageUrl;
+
     @Column(nullable = false)
     private boolean active;
 
@@ -32,10 +35,11 @@ public class Category {
 
     // Package-private: lets tests in this package build fixture rows directly. Production code has
     // no create path yet (categories are seeded via Flyway until admin CRUD lands in Phase 7).
-    Category(String name, String slug, String description, boolean active) {
+    Category(String name, String slug, String description, String imageUrl, boolean active) {
         this.name = name;
         this.slug = slug;
         this.description = description;
+        this.imageUrl = imageUrl;
         this.active = active;
     }
 
@@ -53,6 +57,10 @@ public class Category {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
     }
 
     public boolean isActive() {

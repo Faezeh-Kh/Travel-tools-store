@@ -25,7 +25,8 @@ class CategoryControllerTest {
     @Test
     void getCategories_returnsFullCategoryPayloadFromService() {
         CategoryResponse category = new CategoryResponse(
-                1L, "کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.");
+                1L, "کمپینگ و سرپناه", "camping-shelter", "چادر و تجهیزات سرپناه.",
+                "https://example.com/images/camping-shelter.jpg");
         given(categoryService.getActiveCategories()).willReturn(List.of(category));
 
         mockMvc.get().uri("/api/categories")

@@ -21,7 +21,8 @@ public class CategoryService {
                         category.getId(),
                         category.getName(),
                         category.getSlug(),
-                        category.getDescription()))
+                        category.getDescription(),
+                        category.getImageUrl()))
                 .toList();
     }
 }
