@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ContactPage() {
     return (
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
+        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
             <h1 className="text-2xl font-bold">تماس با ما</h1>
             <address className="flex flex-col gap-3 not-italic text-zinc-600 dark:text-zinc-400">
                 <p>سمنان، شاهرود، میدان امام، پاساژ ونوس، طبقه سوم</p>

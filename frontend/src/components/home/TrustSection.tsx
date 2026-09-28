@@ -16,7 +16,7 @@ const items = [
 export function TrustSection() {
     return (
         <section className="border-t border-zinc-200 dark:border-zinc-800">
-            <div className="mx-auto max-w-5xl px-4 py-12 sm:px-8">
+            <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
                 <h2 className="mb-6 text-2xl font-bold">چرا از ما بخرید؟</h2>
                 <ul className="grid list-none grid-cols-1 gap-6 sm:grid-cols-3">
                     {items.map((item) => (

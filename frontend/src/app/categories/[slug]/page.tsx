@@ -23,7 +23,7 @@ export default async function CategoryPage({params}: PageProps<"/categories/[slu
     ]);
 
     return (
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
+        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
             <div className="flex flex-col gap-2">
                 <h1 className="text-2xl font-bold">{category.name}</h1>
                 <p className="text-zinc-600 dark:text-zinc-400">{category.description}</p>

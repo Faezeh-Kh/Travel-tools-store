@@ -23,7 +23,7 @@ export default async function ProductsPage({searchParams}: PageProps<"/products"
     const hasActiveFilters = Boolean(params.search || params.category || params.inStock);
 
     return (
-        <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-6 p-4 sm:p-8">
+        <main className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-4 sm:px-6 sm:py-8 lg:px-8">
             <h1 className="text-2xl font-bold">محصولات</h1>
             <ProductFilterBar
                 key={`${params.search ?? ""}|${params.category ?? ""}|${params.sort ?? ""}|${params.inStock ?? false}`}
