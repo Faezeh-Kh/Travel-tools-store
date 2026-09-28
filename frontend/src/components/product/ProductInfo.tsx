@@ -14,7 +14,7 @@ export function ProductInfo({product}: {product: ProductDetail}) {
                         {product.categoryName}
                     </Link>
                 </p>
-                <h1 className="text-2xl font-bold">{product.name}</h1>
+                <h1 className="mt-3 text-2xl font-bold">{product.name}</h1>
                 <p className="text-zinc-600 dark:text-zinc-400">{product.shortDescription}</p>
             </div>
             {product.variants.length === 0 ? (
