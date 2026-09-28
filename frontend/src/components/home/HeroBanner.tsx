@@ -1,20 +1,22 @@
 import Link from "next/link";
+import {ProductSearchForm} from "@/components/product/ProductSearchForm";
 
 export function HeroBanner() {
     return (
         <section className="bg-linear-to-l from-accent to-accent-hover px-4 py-16 text-center text-accent-foreground sm:px-8">
-            <div className="mx-auto flex max-w-3xl flex-col items-center gap-4">
+            <div className="mx-auto flex max-w-3xl flex-col items-center">
                 <h1 className="text-3xl font-bold sm:text-4xl">
                     تجهیزات کمپینگ و سفر، برای هر ماجراجویی
                 </h1>
-                <p className="text-lg text-accent-foreground/90">
+                <p className="mt-4 text-lg text-accent-foreground/90">
                     مجموعه‌ای منتخب از لوازم کمپینگ، سفر و طبیعت‌گردی با کیفیت مطمئن
                 </p>
+                <ProductSearchForm className="mt-8" />
                 <Link
                     href="/products"
-                    className="w-fit rounded-full bg-background px-6 py-3 font-medium text-accent transition-colors hover:bg-zinc-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground dark:hover:bg-zinc-900"
+                    className="mt-2 text-sm text-accent-foreground/90 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground"
                 >
-                    مشاهده محصولات
+                    مشاهده همه محصولات
                 </Link>
             </div>
         </section>

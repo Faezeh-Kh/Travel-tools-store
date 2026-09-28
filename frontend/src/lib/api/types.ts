@@ -36,3 +36,24 @@ export type ProductDetail = {
   categorySlug: string;
   variants: ProductVariant[];
 };
+
+export const PRODUCT_SORT_VALUES = ["price-asc", "price-desc", "newest"] as const;
+
+export type ProductSort = (typeof PRODUCT_SORT_VALUES)[number];
+
+export type PageResponse<T> = {
+  items: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+};
+
+export type ProductSearchParams = {
+  search?: string;
+  category?: string;
+  inStock?: boolean;
+  sort?: ProductSort;
+  page?: number;
+  size?: number;
+};

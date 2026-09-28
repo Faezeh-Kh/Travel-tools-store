@@ -1,5 +1,5 @@
 import {afterEach, describe, expect, it, vi} from "vitest";
-import type {ProductDetail, ProductSummary} from "./types";
+import type {PageResponse, ProductDetail, ProductSummary} from "./types";
 
 const {notFound} = vi.hoisted(() => ({
     notFound: vi.fn(() => {
@@ -22,6 +22,14 @@ const sampleProducts: ProductSummary[] = [
         maxPrice: 4850000,
     },
 ];
+
+const sampleProductsPage: PageResponse<ProductSummary> = {
+    items: sampleProducts,
+    page: 0,
+    size: 20,
+    totalElements: 1,
+    totalPages: 1,
+};
 
 const sampleProductDetail: ProductDetail = {
     id: 1,
@@ -53,13 +61,23 @@ afterEach(() => {
 });
 
 describe("getProducts", () => {
-    it("requests the products endpoint and returns the parsed list", async () => {
-        const fetchMock = mockFetchOnce({ok: true, status: 200, json: async () => sampleProducts});
+    it("requests the products endpoint with no query string and returns the parsed page", async () => {
+        const fetchMock = mockFetchOnce({ok: true, status: 200, json: async () => sampleProductsPage});
 
         const result = await getProducts();
 
         expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/api/products");
-        expect(result).toEqual(sampleProducts);
+        expect(result).toEqual(sampleProductsPage);
+    });
+
+    it("builds a query string from the supplied search params", async () => {
+        const fetchMock = mockFetchOnce({ok: true, status: 200, json: async () => sampleProductsPage});
+
+        await getProducts({search: "چادر", category: "camping-shelter", inStock: true, sort: "price-asc", page: 1, size: 10});
+
+        expect(fetchMock).toHaveBeenCalledWith(
+            "http://localhost:8080/api/products?search=%DA%86%D8%A7%D8%AF%D8%B1&category=camping-shelter&inStock=true&sort=price-asc&page=1&size=10",
+        );
     });
 
     it("throws when the response is not ok", async () => {

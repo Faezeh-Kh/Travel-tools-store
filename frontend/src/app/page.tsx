@@ -8,8 +8,10 @@ import {TrustSection} from "@/components/home/TrustSection";
 const FEATURED_PRODUCT_COUNT = 8;
 
 export default async function Home() {
-    const [categories, products] = await Promise.all([getCategories(), getProducts()]);
-    const featuredProducts = products.slice(0, FEATURED_PRODUCT_COUNT);
+    const [categories, {items: featuredProducts}] = await Promise.all([
+        getCategories(),
+        getProducts({size: FEATURED_PRODUCT_COUNT}),
+    ]);
 
     return (
         <main className="flex flex-1 flex-col">
