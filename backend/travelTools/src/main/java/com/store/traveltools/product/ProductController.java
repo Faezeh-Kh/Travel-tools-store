@@ -1,13 +1,16 @@
 package com.store.traveltools.product;
 
-import java.util.List;
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.store.traveltools.common.dto.PageResponse;
 import com.store.traveltools.product.dto.ProductDetailResponse;
+import com.store.traveltools.product.dto.ProductSearchRequest;
 import com.store.traveltools.product.dto.ProductSummaryResponse;
 
 @RestController
@@ -21,8 +24,8 @@ public class ProductController {
     }
 
     @GetMapping
-    public List<ProductSummaryResponse> getProducts() {
-        return productService.getActiveProducts();
+    public PageResponse<ProductSummaryResponse> getProducts(@Valid @ModelAttribute ProductSearchRequest request) {
+        return productService.searchActiveProducts(request);
     }
 
     @GetMapping("/{slug}")

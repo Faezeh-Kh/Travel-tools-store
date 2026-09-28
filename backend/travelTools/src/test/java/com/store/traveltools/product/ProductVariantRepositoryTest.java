@@ -6,7 +6,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -68,56 +67,6 @@ class ProductVariantRepositoryTest extends AbstractIntegrationTest {
         assertThat(variants).extracting(ProductVariant::getId)
                 .containsExactly(first.getId(), second.getId())
                 .doesNotContain(inactive.getId());
-    }
-
-    @Test
-    void findActivePriceRanges_reflectsEqualAndDifferingVariantPrices() {
-        Product samePriceProduct = createTestProduct("test-same-price-product");
-        productVariantRepository.save(
-                new ProductVariant(samePriceProduct, "TEST-SAME-A", Map.of(), new BigDecimal("100.00"), 10, true));
-        productVariantRepository.save(
-                new ProductVariant(samePriceProduct, "TEST-SAME-B", Map.of(), new BigDecimal("100.00"), 5, true));
-
-        Product differingPriceProduct = createTestProduct("test-differing-price-product");
-        productVariantRepository.save(new ProductVariant(
-                differingPriceProduct, "TEST-DIFF-A", Map.of(), new BigDecimal("50.00"), 10, true));
-        productVariantRepository.save(new ProductVariant(
-                differingPriceProduct, "TEST-DIFF-B", Map.of(), new BigDecimal("150.00"), 5, true));
-
-        Map<Long, ProductVariantRepository.ActivePriceRange> priceRangesByProductId = findActivePriceRangesByProductId();
-
-        assertThat(priceRangesByProductId.get(samePriceProduct.getId()).getMinPrice())
-                .isEqualByComparingTo(new BigDecimal("100.00"));
-        assertThat(priceRangesByProductId.get(samePriceProduct.getId()).getMaxPrice())
-                .isEqualByComparingTo(new BigDecimal("100.00"));
-
-        assertThat(priceRangesByProductId.get(differingPriceProduct.getId()).getMinPrice())
-                .isEqualByComparingTo(new BigDecimal("50.00"));
-        assertThat(priceRangesByProductId.get(differingPriceProduct.getId()).getMaxPrice())
-                .isEqualByComparingTo(new BigDecimal("150.00"));
-    }
-
-    @Test
-    void findActivePriceRanges_excludesInactiveVariantsFromRange() {
-        Product product = createTestProduct("test-price-range-excludes-inactive");
-        productVariantRepository.save(
-                new ProductVariant(product, "TEST-ACTIVE-LOW", Map.of(), new BigDecimal("50.00"), 10, true));
-        productVariantRepository.save(
-                new ProductVariant(product, "TEST-ACTIVE-HIGH", Map.of(), new BigDecimal("150.00"), 5, true));
-        productVariantRepository.save(new ProductVariant(
-                product, "TEST-INACTIVE-EXTREME", Map.of(), new BigDecimal("9999.00"), 1, false));
-
-        Map<Long, ProductVariantRepository.ActivePriceRange> priceRangesByProductId = findActivePriceRangesByProductId();
-
-        assertThat(priceRangesByProductId.get(product.getId()).getMinPrice())
-                .isEqualByComparingTo(new BigDecimal("50.00"));
-        assertThat(priceRangesByProductId.get(product.getId()).getMaxPrice())
-                .isEqualByComparingTo(new BigDecimal("150.00"));
-    }
-
-    private Map<Long, ProductVariantRepository.ActivePriceRange> findActivePriceRangesByProductId() {
-        return productVariantRepository.findActivePriceRanges().stream()
-                .collect(Collectors.toMap(ProductVariantRepository.ActivePriceRange::getProductId, range -> range));
     }
 
     @Test

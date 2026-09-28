@@ -1,18 +1,19 @@
 package com.store.traveltools.product;
 
-import com.store.traveltools.common.exception.NotFoundException;
-import com.store.traveltools.product.ProductVariantRepository.ActivePriceRange;
-import com.store.traveltools.product.dto.ProductDetailResponse;
-import com.store.traveltools.product.dto.ProductSummaryResponse;
-import com.store.traveltools.product.dto.ProductVariantResponse;
-import org.jspecify.annotations.Nullable;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+import com.store.traveltools.common.dto.PageResponse;
+import com.store.traveltools.common.exception.NotFoundException;
+import com.store.traveltools.product.ProductRepository.ProductCatalogRow;
+import com.store.traveltools.product.dto.ProductDetailResponse;
+import com.store.traveltools.product.dto.ProductSearchRequest;
+import com.store.traveltools.product.dto.ProductSummaryResponse;
+import com.store.traveltools.product.dto.ProductVariantResponse;
 
 @Service
 @Transactional(readOnly = true)
@@ -26,19 +27,10 @@ public class ProductService {
         this.productVariantRepository = productVariantRepository;
     }
 
-    private static ProductSummaryResponse toSummary(Product product, @Nullable ActivePriceRange priceRange) {
-        String primaryImage = product.getImages().isEmpty() ? null : product.getImages().getFirst();
-        BigDecimal minPrice = priceRange != null ? priceRange.getMinPrice() : null;
-        BigDecimal maxPrice = priceRange != null ? priceRange.getMaxPrice() : null;
-
+    private static ProductSummaryResponse toSummary(ProductCatalogRow row) {
         return new ProductSummaryResponse(
-                product.getId(),
-                product.getName(),
-                product.getSlug(),
-                product.getShortDescription(),
-                primaryImage,
-                minPrice,
-                maxPrice);
+                row.getId(), row.getName(), row.getSlug(), row.getShortDescription(),
+                row.getPrimaryImage(), row.getMinPrice(), row.getMaxPrice());
     }
 
     private static ProductVariantResponse toVariantResponse(ProductVariant variant) {
@@ -50,16 +42,19 @@ public class ProductService {
                 variant.getStockQuantity());
     }
 
-    public List<ProductSummaryResponse> getActiveProducts() {
-        List<Product> products = productRepository.findByActiveTrueOrderByNameAsc();
+    public PageResponse<ProductSummaryResponse> searchActiveProducts(ProductSearchRequest request) {
+        String sort = request.sort() == null ? null : request.sort().name();
 
-        Map<Long, ActivePriceRange> priceRangesByProductId = productVariantRepository
-                .findActivePriceRanges().stream()
-                .collect(Collectors.toMap(ActivePriceRange::getProductId, range -> range));
+        Page<ProductCatalogRow> page = productRepository.search(
+                request.search(), request.category(), request.inStock(), sort,
+                PageRequest.of(request.page(), request.size()));
 
-        return products.stream()
-                .map(product -> toSummary(product, priceRangesByProductId.get(product.getId())))
+        List<ProductSummaryResponse> items = page.getContent().stream()
+                .map(ProductService::toSummary)
                 .toList();
+
+        return new PageResponse<>(
+                items, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages());
     }
 
     public ProductDetailResponse getActiveProductBySlug(String slug) {

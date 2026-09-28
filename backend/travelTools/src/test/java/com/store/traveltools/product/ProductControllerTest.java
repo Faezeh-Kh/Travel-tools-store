@@ -1,12 +1,14 @@
 package com.store.traveltools.product;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.BDDMockito.given;
-
-import java.math.BigDecimal;
-import java.util.List;
-import java.util.Map;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.store.traveltools.common.dto.ErrorResponse;
+import com.store.traveltools.common.dto.FieldErrorDetail;
+import com.store.traveltools.common.dto.PageResponse;
+import com.store.traveltools.common.exception.NotFoundException;
+import com.store.traveltools.product.dto.ProductDetailResponse;
+import com.store.traveltools.product.dto.ProductSearchRequest;
+import com.store.traveltools.product.dto.ProductSummaryResponse;
+import com.store.traveltools.product.dto.ProductVariantResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -14,45 +16,97 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.assertj.MockMvcTester;
 
-import com.store.traveltools.common.dto.ErrorResponse;
-import com.store.traveltools.common.exception.NotFoundException;
-import com.store.traveltools.product.dto.ProductDetailResponse;
-import com.store.traveltools.product.dto.ProductSummaryResponse;
-import com.store.traveltools.product.dto.ProductVariantResponse;
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.verify;
 
 @WebMvcTest(ProductController.class)
 class ProductControllerTest {
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     @Autowired
     private MockMvcTester mockMvc;
-
     @MockitoBean
     private ProductService productService;
 
     @Test
-    void getProducts_returnsFullProductSummaryPayloadFromService() {
+    void getProducts_returnsFullPagedPayloadFromService() throws Exception {
         ProductSummaryResponse summary = new ProductSummaryResponse(1L, "صندلی تاشو کمپینگ", "folding-camping-chair",
                 "صندلی سبک و تاشو.", null, new BigDecimal("950000.00"), new BigDecimal("950000.00"));
-        given(productService.getActiveProducts()).willReturn(List.of(summary));
+        PageResponse<ProductSummaryResponse> page = new PageResponse<>(List.of(summary), 0, 20, 1, 1);
+        given(productService.searchActiveProducts(any())).willReturn(page);
 
         mockMvc.get().uri("/api/products")
                 .assertThat()
                 .hasStatusOk()
                 .hasContentType(MediaType.APPLICATION_JSON)
                 .bodyJson()
-                .convertTo(ProductSummaryResponse[].class)
-                .isEqualTo(new ProductSummaryResponse[] {summary});
+                .isEqualTo(objectMapper.writeValueAsString(page));
     }
 
     @Test
-    void getProducts_returnsEmptyArrayWhenNoActiveProductsExist() {
-        given(productService.getActiveProducts()).willReturn(List.of());
+    void getProducts_returnsEmptyItemsWhenNoActiveProductsExist() {
+        given(productService.searchActiveProducts(any())).willReturn(new PageResponse<>(List.of(), 0, 20, 0, 0));
 
         mockMvc.get().uri("/api/products")
                 .assertThat()
                 .hasStatusOk()
                 .bodyJson()
-                .isEqualTo("[]");
+                .extractingPath("$.items")
+                .isEqualTo(List.of());
+    }
+
+    @Test
+    void getProducts_bindsDefaultsWhenNoQueryParamsGiven() {
+        given(productService.searchActiveProducts(any())).willReturn(new PageResponse<>(List.of(), 0, 20, 0, 0));
+
+        mockMvc.get().uri("/api/products").assertThat().hasStatusOk();
+
+        verify(productService).searchActiveProducts(
+                new ProductSearchRequest(null, null, false, null, 0, 20));
+    }
+
+    @Test
+    void getProducts_bindsAllSuppliedQueryParams() {
+        given(productService.searchActiveProducts(any())).willReturn(new PageResponse<>(List.of(), 1, 10, 0, 0));
+
+        mockMvc.get()
+                .uri("/api/products?search=چادر&category=camping-shelter&inStock=true&sort=price-asc&page=1&size=10")
+                .assertThat().hasStatusOk();
+
+        verify(productService).searchActiveProducts(
+                new ProductSearchRequest("چادر", "camping-shelter", true, ProductSort.PRICE_ASC, 1, 10));
+    }
+
+    @Test
+    void getProducts_returnsValidationErrorForPageSizeAboveMaximum() {
+        mockMvc.get().uri("/api/products?size=101")
+                .assertThat()
+                .hasStatus(400)
+                .bodyJson()
+                .convertTo(ErrorResponse.class)
+                .satisfies(error -> {
+                    assertThat(error.code()).isEqualTo("VALIDATION_ERROR");
+                    assertThat(error.fieldErrors()).extracting(FieldErrorDetail::field).contains("size");
+                });
+    }
+
+    @Test
+    void getProducts_returnsValidationErrorForUnknownSortValue() {
+        mockMvc.get().uri("/api/products?sort=not-a-real-sort")
+                .assertThat()
+                .hasStatus(400)
+                .bodyJson()
+                .convertTo(ErrorResponse.class)
+                .satisfies(error -> {
+                    assertThat(error.code()).isEqualTo("VALIDATION_ERROR");
+                    assertThat(error.fieldErrors()).extracting(FieldErrorDetail::field).contains("sort");
+                });
     }
 
     @Test

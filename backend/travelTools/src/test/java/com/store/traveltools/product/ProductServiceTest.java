@@ -2,8 +2,12 @@ package com.store.traveltools.product;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -15,11 +19,17 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import com.store.traveltools.category.Category;
+import com.store.traveltools.common.dto.PageResponse;
 import com.store.traveltools.common.exception.NotFoundException;
-import com.store.traveltools.product.ProductVariantRepository.ActivePriceRange;
+import com.store.traveltools.product.ProductRepository.ProductCatalogRow;
 import com.store.traveltools.product.dto.ProductDetailResponse;
+import com.store.traveltools.product.dto.ProductSearchRequest;
 import com.store.traveltools.product.dto.ProductSummaryResponse;
 import com.store.traveltools.product.dto.ProductVariantResponse;
 
@@ -42,48 +52,60 @@ class ProductServiceTest {
         productService = new ProductService(productRepository, productVariantRepository);
     }
 
-    private static Product mockProduct(Long id, String name, String slug, List<String> images) {
-        Product product = mock(Product.class);
-        given(product.getId()).willReturn(id);
-        given(product.getName()).willReturn(name);
-        given(product.getSlug()).willReturn(slug);
-        given(product.getShortDescription()).willReturn("Short description.");
-        given(product.getImages()).willReturn(images);
-        return product;
-    }
-
-    private static ActivePriceRange mockPriceRange(Long productId, BigDecimal min, BigDecimal max) {
-        ActivePriceRange range = mock(ActivePriceRange.class);
-        given(range.getProductId()).willReturn(productId);
-        given(range.getMinPrice()).willReturn(min);
-        given(range.getMaxPrice()).willReturn(max);
-        return range;
+    private static ProductCatalogRow mockRow(
+            Long id, String name, String slug, String primaryImage, BigDecimal minPrice, BigDecimal maxPrice) {
+        ProductCatalogRow row = mock(ProductCatalogRow.class);
+        given(row.getId()).willReturn(id);
+        given(row.getName()).willReturn(name);
+        given(row.getSlug()).willReturn(slug);
+        given(row.getShortDescription()).willReturn("Short description.");
+        given(row.getPrimaryImage()).willReturn(primaryImage);
+        given(row.getMinPrice()).willReturn(minPrice);
+        given(row.getMaxPrice()).willReturn(maxPrice);
+        return row;
     }
 
     @Test
-    void getActiveProducts_mapsPriceRangeAndPrimaryImageWhenPresent() {
-        Product product = mockProduct(1L, "Test Product", "test-product", List.of("/images/1.jpg"));
-        ActivePriceRange priceRange = mockPriceRange(1L, new BigDecimal("100.00"), new BigDecimal("200.00"));
-        given(productRepository.findByActiveTrueOrderByNameAsc()).willReturn(List.of(product));
-        given(productVariantRepository.findActivePriceRanges()).willReturn(List.of(priceRange));
+    void searchActiveProducts_mapsCatalogRowsAndPageMetadataToResponse() {
+        ProductCatalogRow row = mockRow(1L, "Test Product", "test-product",
+                "/images/1.jpg", new BigDecimal("100.00"), new BigDecimal("200.00"));
+        Page<ProductCatalogRow> page = new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1);
+        given(productRepository.search(any(), any(), anyBoolean(), any(), any(Pageable.class))).willReturn(page);
 
-        List<ProductSummaryResponse> result = productService.getActiveProducts();
+        ProductSearchRequest request = new ProductSearchRequest(null, null, false, null, null, null);
+        PageResponse<ProductSummaryResponse> result = productService.searchActiveProducts(request);
 
-        assertThat(result).containsExactly(new ProductSummaryResponse(
+        assertThat(result.items()).containsExactly(new ProductSummaryResponse(
                 1L, "Test Product", "test-product", "Short description.",
                 "/images/1.jpg", new BigDecimal("100.00"), new BigDecimal("200.00")));
+        assertThat(result.page()).isEqualTo(0);
+        assertThat(result.size()).isEqualTo(20);
+        assertThat(result.totalElements()).isEqualTo(1);
+        assertThat(result.totalPages()).isEqualTo(1);
     }
 
     @Test
-    void getActiveProducts_returnsNullPriceRangeWhenProductHasNoActiveVariantPriceRangeEntry() {
-        Product product = mockProduct(2L, "Test Product No Range", "test-product-no-range", List.of());
-        given(productRepository.findByActiveTrueOrderByNameAsc()).willReturn(List.of(product));
-        given(productVariantRepository.findActivePriceRanges()).willReturn(List.of());
+    void searchActiveProducts_returnsNullPriceFieldsWhenRowHasNoActiveVariants() {
+        ProductCatalogRow row = mockRow(2L, "Test Product No Range", "test-product-no-range", null, null, null);
+        Page<ProductCatalogRow> page = new PageImpl<>(List.of(row), PageRequest.of(0, 20), 1);
+        given(productRepository.search(any(), any(), anyBoolean(), any(), any(Pageable.class))).willReturn(page);
 
-        List<ProductSummaryResponse> result = productService.getActiveProducts();
+        ProductSearchRequest request = new ProductSearchRequest(null, null, false, null, null, null);
+        PageResponse<ProductSummaryResponse> result = productService.searchActiveProducts(request);
 
-        assertThat(result).containsExactly(new ProductSummaryResponse(
+        assertThat(result.items()).containsExactly(new ProductSummaryResponse(
                 2L, "Test Product No Range", "test-product-no-range", "Short description.", null, null, null));
+    }
+
+    @Test
+    void searchActiveProducts_passesSortEnumNameToRepository() {
+        given(productRepository.search(anyString(), anyString(), anyBoolean(), anyString(), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of()));
+
+        productService.searchActiveProducts(
+                new ProductSearchRequest("چادر", "camping-shelter", true, ProductSort.PRICE_ASC, 1, 10));
+
+        verify(productRepository).search("چادر", "camping-shelter", true, "PRICE_ASC", PageRequest.of(1, 10));
     }
 
     @Test
