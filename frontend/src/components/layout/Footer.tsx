@@ -6,7 +6,7 @@ export function Footer() {
 
     return (
         <footer className="border-t border-zinc-200 dark:border-zinc-800">
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 text-sm text-zinc-600 dark:text-zinc-400 sm:flex-row sm:items-start sm:justify-between sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full max-w-[1536px] flex-col gap-6 px-4 py-6 text-sm text-zinc-600 dark:text-zinc-400 sm:flex-row sm:items-start sm:justify-between sm:px-6 lg:px-8">
                 <div className="flex flex-col gap-1">
                     <Link
                         href="/"
@@ -50,7 +50,7 @@ export function Footer() {
                 </div>
             </div>
             <div className="border-t border-zinc-200 dark:border-zinc-800">
-                <div className="mx-auto max-w-7xl px-4 py-4 text-center text-xs text-zinc-500 sm:px-6 lg:px-8">
+                <div className="mx-auto max-w-[1536px] px-4 py-4 text-center text-xs text-zinc-500 sm:px-6 lg:px-8">
                     © {year} فروشگاه ابزار سفر
                 </div>
             </div>

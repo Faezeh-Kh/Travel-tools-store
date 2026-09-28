@@ -34,7 +34,7 @@ export function CategoryCard({category}: {category: Category}) {
                 </div>
             )}
             <h2 className="font-semibold">{category.name}</h2>
-            <p className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{category.description}</p>
+            <p className="line-clamp-2 min-h-10 text-sm text-zinc-600 dark:text-zinc-400">{category.description}</p>
         </Link>
     );
 }

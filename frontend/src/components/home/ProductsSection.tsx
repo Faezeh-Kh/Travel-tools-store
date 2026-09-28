@@ -5,13 +5,13 @@ import {CtaLink} from "@/components/CtaLink";
 export function ProductsSection({products}: {products: ProductSummary[]}) {
     return (
         <section className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-900">
-            <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-12 sm:px-6 lg:px-8">
+            <div className="mx-auto flex w-full max-w-[1536px] flex-col gap-6 px-4 py-12 sm:px-6 lg:px-8">
                 <h2 className="w-fit border-b-2 border-accent pb-2 text-2xl font-bold">محصولات</h2>
                 {products.length === 0 ? (
                     <p className="text-zinc-500">در حال حاضر محصولی برای نمایش وجود ندارد.</p>
                 ) : (
                     <>
-                        <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+                        <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
                             {products.map((product) => (
                                 <li key={product.id}>
                                     <ProductCard product={product} />
