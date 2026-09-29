@@ -1,5 +1,4 @@
 import Link from "next/link";
-import {ProductSearchForm} from "@/components/product/ProductSearchForm";
 
 export function HeroBanner() {
     return (
@@ -11,10 +10,9 @@ export function HeroBanner() {
                 <p className="mt-4 text-lg text-accent-foreground/90">
                     مجموعه‌ای منتخب از لوازم کمپینگ، سفر و طبیعت‌گردی با کیفیت مطمئن
                 </p>
-                <ProductSearchForm className="mt-8" />
                 <Link
                     href="/products"
-                    className="mt-2 text-sm text-accent-foreground/90 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground"
+                    className="mt-8 text-sm text-accent-foreground/90 underline-offset-4 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground"
                 >
                     مشاهده همه محصولات
                 </Link>

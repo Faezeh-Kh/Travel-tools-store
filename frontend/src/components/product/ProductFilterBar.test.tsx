@@ -27,7 +27,6 @@ describe("ProductFilterBar", () => {
             />,
         );
 
-        expect(screen.getByRole("searchbox", {name: "جستجوی محصولات"})).toHaveValue("چادر");
         expect(screen.getByRole("combobox", {name: "دسته‌بندی"})).toHaveDisplayValue("روشنایی و برق");
         expect(screen.getByRole("combobox", {name: "مرتب‌سازی"})).toHaveDisplayValue("قیمت: کم به زیاد");
         expect(screen.getByRole("checkbox", {name: "فقط کالاهای موجود"})).toBeChecked();
@@ -48,16 +47,21 @@ describe("ProductFilterBar", () => {
         expect(onSubmit).toHaveBeenCalledTimes(3);
     });
 
-    it("submits the search field when cleared, but not while typing", () => {
+    it("does not render its own search box", () => {
+        render(<ProductFilterBar categories={categories} defaultValues={{search: "چادر"}} />);
+
+        expect(screen.queryByRole("searchbox")).not.toBeInTheDocument();
+    });
+
+    it("keeps the active search term when a filter is submitted", () => {
         const {container} = render(<ProductFilterBar categories={categories} defaultValues={{search: "چادر"}} />);
-        const searchbox = screen.getByRole("searchbox", {name: "جستجوی محصولات"});
-        const onSubmit = vi.fn((event: Event) => event.preventDefault());
-        container.querySelector("form")!.addEventListener("submit", onSubmit);
 
-        fireEvent.change(searchbox, {target: {value: "چادر کوهنوردی"}});
-        expect(onSubmit).not.toHaveBeenCalled();
+        expect(new FormData(container.querySelector("form")!).get("search")).toBe("چادر");
+    });
 
-        fireEvent.change(searchbox, {target: {value: ""}});
-        expect(onSubmit).toHaveBeenCalledOnce();
+    it("does not submit an empty search term when there is no active search", () => {
+        const {container} = render(<ProductFilterBar categories={categories} defaultValues={{}} />);
+
+        expect(new FormData(container.querySelector("form")!).has("search")).toBe(false);
     });
 });

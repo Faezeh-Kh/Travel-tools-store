@@ -1,13 +1,17 @@
+import {useId} from "react";
 import {SearchIcon} from "@/components/SearchIcon";
 
 export function SearchField({defaultValue}: {defaultValue?: string}) {
+    // A fixed id would be duplicated if more than one SearchField is rendered on a page.
+    const inputId = useId();
+
     return (
         <div className="flex w-full max-w-md flex-row-reverse items-center gap-2 rounded-full border border-zinc-300 bg-background px-2 py-1 shadow-sm dark:border-zinc-700">
-            <label htmlFor="product-search" className="sr-only">
+            <label htmlFor={inputId} className="sr-only">
                 جستجوی محصولات
             </label>
             <input
-                id="product-search"
+                id={inputId}
                 type="search"
                 name="search"
                 defaultValue={defaultValue}

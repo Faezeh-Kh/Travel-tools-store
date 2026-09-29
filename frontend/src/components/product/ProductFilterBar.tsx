@@ -2,7 +2,6 @@
 
 import Form from "next/form";
 import type {ChangeEvent} from "react";
-import {SearchField} from "@/components/product/SearchField";
 import type {Category, ProductSearchParams, ProductSort} from "@/lib/api/types";
 
 const SORT_LABELS: Record<ProductSort, string> = {
@@ -82,7 +81,8 @@ function InStockCheckbox({defaultChecked}: {defaultChecked?: boolean}) {
 export function ProductFilterBar({categories, defaultValues}: {categories: Category[]; defaultValues: ProductSearchParams}) {
     return (
         <Form action="/products" className="flex flex-wrap items-end gap-4">
-            <SearchField defaultValue={defaultValues.search} />
+            {/* Searching happens in the header; this keeps the active search term when a filter changes. */}
+            {defaultValues.search && <input type="hidden" name="search" value={defaultValues.search} />}
             <CategorySelect categories={categories} defaultValue={defaultValues.category} />
             <SortSelect defaultValue={defaultValues.sort} />
             <InStockCheckbox defaultChecked={defaultValues.inStock} />

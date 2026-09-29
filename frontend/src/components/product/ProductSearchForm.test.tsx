@@ -28,4 +28,15 @@ describe("ProductSearchForm", () => {
         fireEvent.change(searchbox, {target: {value: ""}});
         expect(onSubmit).toHaveBeenCalledOnce();
     });
+
+    it("keeps each search box labeled when two forms render on the same page", () => {
+        render(
+            <>
+                <ProductSearchForm />
+                <ProductSearchForm />
+            </>,
+        );
+
+        expect(screen.getAllByRole("searchbox", {name: "جستجوی محصولات"})).toHaveLength(2);
+    });
 });
