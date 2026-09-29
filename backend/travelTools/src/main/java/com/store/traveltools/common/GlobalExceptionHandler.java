@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
 
 import com.store.traveltools.common.dto.ErrorResponse;
 import com.store.traveltools.common.dto.FieldErrorDetail;
+import com.store.traveltools.common.exception.ConflictException;
 import com.store.traveltools.common.exception.NotFoundException;
 
 @RestControllerAdvice
@@ -31,6 +32,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         ErrorResponse body = new ErrorResponse(
                 Instant.now(), HttpStatus.NOT_FOUND.value(), "NOT_FOUND", ex.getMessage(), List.of());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body);
+    }
+
+    @ExceptionHandler(ConflictException.class)
+    public ResponseEntity<Object> handleConflict(ConflictException ex) {
+        ErrorResponse body = new ErrorResponse(
+                Instant.now(), HttpStatus.CONFLICT.value(), "CONFLICT", ex.getMessage(), List.of());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body);
     }
 
     @ExceptionHandler(Exception.class)

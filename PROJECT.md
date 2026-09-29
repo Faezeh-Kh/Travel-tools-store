@@ -49,10 +49,15 @@ active purchasable variants. Search names/descriptions using PostgreSQL case-ins
 category/in-stock; sort by price ascending/descending or newest; paginate.
 
 **Cart:** Add/remove variants, change quantities, show subtotal/total. Server validates existence, product/variant
-availability, quantity, and stock; calculates totals from current authoritative prices, never client prices.
+availability, quantity, and stock; calculates totals from current authoritative prices, never client prices. This
+stock/availability check is advisory (feedback while shopping), not a reservation or guarantee — concurrent cart
+mutations against the same cart are serialized via a cart-level pessimistic lock (see `CartService`), so quantities
+can't be silently lost to a race, but cart-time stock can still drift before checkout.
 
-**Checkout:** Collect first/last name, phone, address, city, postal code, optional notes. Keep order creation decoupled
-for future payments; build no payment-provider infrastructure now.
+**Checkout:** Collect first/last name, phone, address, city, postal code, optional notes. Must re-validate stock and
+variant/product availability authoritatively — inside its own transaction, at order-creation time — regardless of what
+the cart shows; the cart's own stock check is advisory only. Keep order creation decoupled for future payments; build
+no payment-provider infrastructure now.
 
 **Orders:** Assign unique human-readable numbers. Snapshot productId, productVariantId, productName, variantDescription,
 sku, quantity, unitPrice, totalPrice; subsequent catalog changes cannot alter purchases. Statuses: PENDING, CONFIRMED,
