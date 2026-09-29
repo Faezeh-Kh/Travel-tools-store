@@ -20,7 +20,7 @@ describe("ProductFilters", () => {
         expect(screen.getByRole("radio", {name: "کمپینگ و سرپناه"})).not.toBeChecked();
         expect(screen.getByRole("radio", {name: "روشنایی و برق"})).not.toBeChecked();
         expect(screen.getByRole("checkbox", {name: "فقط کالاهای موجود"})).not.toBeChecked();
-        expect(screen.queryByRole("link", {name: "پاک کردن فیلترها"})).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", {name: "پاک کردن فیلترها"})).not.toBeInTheDocument();
     });
 
     it("pre-selects the active category and in-stock filter", () => {
@@ -67,23 +67,73 @@ describe("ProductFilters", () => {
         expect(onSubmit).toHaveBeenCalledTimes(2);
     });
 
-    it("clears only the filters, keeping the active search and sort", () => {
-        render(
+    it("clears only the filters and submits, keeping the active search and sort", () => {
+        const {container} = render(
             <ProductFilters
                 categories={categories}
-                defaultValues={{search: "چادر", sort: "price-desc", category: "camping-shelter"}}
+                defaultValues={{search: "چادر", sort: "price-desc", category: "camping-shelter", inStock: true}}
             />,
         );
+        const submitted: FormData[] = [];
+        formOf(container).addEventListener("submit", (event) => {
+            event.preventDefault();
+            submitted.push(new FormData(formOf(container)));
+        });
 
-        expect(screen.getByRole("link", {name: "پاک کردن فیلترها"})).toHaveAttribute(
-            "href",
-            "/products?search=%DA%86%D8%A7%D8%AF%D8%B1&sort=price-desc",
-        );
+        fireEvent.click(screen.getByRole("button", {name: "پاک کردن فیلترها"}));
+
+        expect(submitted).toHaveLength(1);
+        expect(submitted[0].get("search")).toBe("چادر");
+        expect(submitted[0].get("sort")).toBe("price-desc");
+        expect(submitted[0].get("category")).toBe("");
+        expect(submitted[0].has("inStock")).toBe(false);
     });
 
     it("offers to clear filters when only the in-stock filter is active", () => {
         render(<ProductFilters categories={categories} defaultValues={{inStock: true}} />);
 
-        expect(screen.getByRole("link", {name: "پاک کردن فیلترها"})).toHaveAttribute("href", "/products");
+        expect(screen.getByRole("button", {name: "پاک کردن فیلترها"})).toBeInTheDocument();
+    });
+
+    it("in apply mode, waits for the apply button instead of submitting on every change", () => {
+        const {container} = render(
+            <ProductFilters categories={categories} defaultValues={{}} submitOnChange={false} />,
+        );
+        const onSubmit = vi.fn((event: Event) => event.preventDefault());
+        formOf(container).addEventListener("submit", onSubmit);
+
+        fireEvent.click(screen.getByRole("radio", {name: "روشنایی و برق"}));
+        fireEvent.click(screen.getByRole("checkbox", {name: "فقط کالاهای موجود"}));
+        expect(onSubmit).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", {name: "مشاهده نتایج"}));
+        expect(onSubmit).toHaveBeenCalledOnce();
+        const data = new FormData(formOf(container));
+        expect(data.get("category")).toBe("lighting-power");
+        expect(data.get("inStock")).toBe("true");
+    });
+
+    it("has no apply button when changes are submitted immediately", () => {
+        render(<ProductFilters categories={categories} defaultValues={{}} />);
+
+        expect(screen.queryByRole("button", {name: "مشاهده نتایج"})).not.toBeInTheDocument();
+    });
+
+    it("in apply mode, offers to clear as soon as a filter is selected, even before it is applied", () => {
+        render(<ProductFilters categories={categories} defaultValues={{}} submitOnChange={false} />);
+        expect(screen.queryByRole("button", {name: "پاک کردن فیلترها"})).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("radio", {name: "روشنایی و برق"}));
+        expect(screen.getByRole("button", {name: "پاک کردن فیلترها"})).toBeInTheDocument();
+    });
+
+    it("hides the clear button again once every filter is deselected", () => {
+        render(<ProductFilters categories={categories} defaultValues={{}} submitOnChange={false} />);
+
+        fireEvent.click(screen.getByRole("checkbox", {name: "فقط کالاهای موجود"}));
+        expect(screen.getByRole("button", {name: "پاک کردن فیلترها"})).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("checkbox", {name: "فقط کالاهای موجود"}));
+        expect(screen.queryByRole("button", {name: "پاک کردن فیلترها"})).not.toBeInTheDocument();
     });
 });

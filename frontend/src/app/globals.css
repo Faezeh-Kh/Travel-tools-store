@@ -29,3 +29,8 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* A modal <dialog> blocks interaction with the page but not scrolling; stop the page scrolling behind an open one. */
+:root:has(dialog[open]) {
+  overflow: hidden;
+}

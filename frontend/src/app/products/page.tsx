@@ -4,6 +4,7 @@ import {getProducts, PAGE_SIZE} from "@/lib/api/products";
 import {ProductCard} from "@/components/ProductCard";
 import {ProductFilters} from "@/components/product/ProductFilters";
 import {ProductSortSelect} from "@/components/product/ProductSortSelect";
+import {ProductFilterDrawer} from "@/components/product/ProductFilterDrawer";
 import {Pagination} from "@/components/product/Pagination";
 import {CtaLink} from "@/components/CtaLink";
 import {parseProductSearchParams} from "@/lib/parseProductSearchParams";
@@ -52,24 +53,33 @@ export default async function ProductsPage({searchParams}: PageProps<"/products"
     const categoryName = categories.find((category) => category.slug === params.category)?.name;
     // Remounts the forms after navigation so their uncontrolled inputs pick up the new URL values.
     const filtersKey = `${params.search ?? ""}|${params.category ?? ""}|${params.sort ?? ""}|${params.inStock ?? false}`;
+    const activeFilterCount = (params.category ? 1 : 0) + (params.inStock ? 1 : 0);
 
     return (
         <main className="mx-auto w-full max-w-[1536px] flex-1 px-4 pt-4 pb-8 sm:px-6 lg:grid lg:grid-cols-[16rem_1fr] lg:gap-8 lg:px-8 lg:pt-6">
             {/* First in the markup, so in RTL it sits on the right. The bordered box stretches to the full height
                 of the row, while the filters inside it stay sticky below the sticky header. (A box as tall as its
-                row has no room to slide, so the sticky part has to be the inner element.) */}
+                row has no room to slide, so the sticky part has to be the inner element.) Below lg the filters move
+                into ProductFilterDrawer instead. */}
             <aside
                 aria-label="فیلتر محصولات"
-                className="mb-4 rounded-lg border border-zinc-200 p-4 lg:mb-0 dark:border-zinc-800"
+                className="hidden rounded-lg border border-zinc-200 p-4 lg:block dark:border-zinc-800"
             >
                 <div className="lg:sticky lg:top-24">
                     <ProductFilters key={filtersKey} categories={categories} defaultValues={params}/>
                 </div>
             </aside>
             <div className="flex min-w-0 flex-col gap-4">
+                {/* Below lg the heading takes a full row and the filter button and sort share the next one. The drawer
+                    and sort are keyed by the URL state so any URL change remounts them with fresh values; as siblings
+                    their keys must differ, or React cannot tell the old and new elements apart and leaves stale
+                    copies behind. */}
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                    <h1 className="text-2xl font-bold">محصولات</h1>
-                    <ProductSortSelect key={filtersKey} defaultValues={params}/>
+                    <h1 className="w-full text-2xl font-bold lg:w-auto">محصولات</h1>
+                    <ProductFilterDrawer key={`drawer|${filtersKey}`} activeFilterCount={activeFilterCount}>
+                        <ProductFilters categories={categories} defaultValues={params} submitOnChange={false}/>
+                    </ProductFilterDrawer>
+                    <ProductSortSelect key={`sort|${filtersKey}`} defaultValues={params}/>
                 </div>
                 {/* A new key per URL makes React show the fallback while the new results load, instead of
                     replacing the whole page; the sidebar and toolbar stay in place. */}

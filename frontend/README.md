@@ -30,7 +30,7 @@ elsewhere.
 | Route | Purpose |
 | --- | --- |
 | `/` | Home: hero banner, category grid, featured products, trust section. |
-| `/products` | Product catalog with a category/in-stock filter sidebar, a sort toolbar, and pagination, driven by the `search`, `category`, `inStock`, `sort`, and `page` query parameters. Search terms are entered in the site-wide header. |
+| `/products` | Product catalog with a category/in-stock filter sidebar (a filter drawer below the `lg` breakpoint), a sort toolbar, and pagination, driven by the `search`, `category`, `inStock`, `sort`, and `page` query parameters. Search terms are entered in the site-wide header. |
 | `/products/[slug]` | Product detail: image, info, variant selection with live price/stock. |
 | `/categories/[slug]` | Category detail (name/description) with a paginated list of that category's products and a link to filter them in the full catalog. |
 | `/contact` | Static contact information (address, phone, email, Telegram). |
