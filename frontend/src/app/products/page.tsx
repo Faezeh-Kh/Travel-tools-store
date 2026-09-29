@@ -35,7 +35,9 @@ async function ProductResults({params, categoryName}: {params: ProductSearchPara
     return (
         <>
             <p className="text-sm text-zinc-500">{totalElements.toLocaleString("fa-IR")} محصول</p>
-            <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+            {/* One column fewer than the category page from lg up, where the sidebar takes ~288px, so cards stay
+                around 210-230px wide. */}
+            <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
                 {products.map((product) => (
                     <li key={product.id}>
                         <ProductCard product={product}/>
