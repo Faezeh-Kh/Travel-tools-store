@@ -2,10 +2,11 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phase 3 (Storefront) — functionally complete. Home, catalog, product/category detail pages, variant
-selection, site-wide header/footer, and a static contact page are all built, Persian/RTL throughout, with a
-behavior-focused frontend test suite. Category-scoped product browsing, search, filtering, and sorting are deferred
-to Phase 4 (Discovery); cart, checkout, and admin management remain Phase 5–7 work.
+**Status:** Phases 3 (Storefront) and 4 (Discovery) — functionally complete. Home, catalog, product/category detail
+pages, variant selection, site-wide header/footer, and a static contact page are all built, Persian/RTL throughout,
+with a behavior-focused frontend test suite. The catalog supports product search (from the site-wide header), category
+and in-stock filters, sorting, and pagination; category pages list their products. Cart, checkout, and admin management
+remain Phase 5–7 work.
 
 ## Architecture and stack
 

@@ -30,9 +30,9 @@ elsewhere.
 | Route | Purpose |
 | --- | --- |
 | `/` | Home: hero banner, category grid, featured products, trust section. |
-| `/products` | Full product catalog. |
+| `/products` | Product catalog with category/in-stock filters, sorting, and pagination, driven by the `search`, `category`, `inStock`, `sort`, and `page` query parameters. Search terms are entered in the site-wide header. |
 | `/products/[slug]` | Product detail: image, info, variant selection with live price/stock. |
-| `/categories/[slug]` | Category detail (name/description). Does not list that category's products yet — filtered browsing needs a backend capability that belongs to Phase 4 (Discovery). |
+| `/categories/[slug]` | Category detail (name/description) with a paginated list of that category's products and a link to filter them in the full catalog. |
 | `/contact` | Static contact information (address, phone, email, Telegram). |
 
 ## Project structure and conventions
@@ -44,9 +44,11 @@ elsewhere.
 - `src/lib/format.ts` — shared formatting (Persian-locale prices).
 - `src/components/` — components shared across multiple pages (`ProductCard`, `CategoryCard`, `CtaLink`,
   `VariantSelector`, etc.).
-  - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout.
+  - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout. The header
+    holds the global product search, pre-filled from the URL's `search` parameter.
   - `src/components/home/` — components used only by the home page.
-  - `src/components/product/` — components used only by the product detail page.
+  - `src/components/product/` — product-specific components: detail page, catalog filter bar, pagination, and the
+    search form.
 - Shared visual tokens (`accent`, `background`, `foreground`) are defined once in `src/app/globals.css`'s `@theme`
   block. Reuse `CtaLink` for button-styled links rather than duplicating its class list.
 - **Image handling**: no image-storage infrastructure exists yet (admin upload is Phase 7 work). Any component
