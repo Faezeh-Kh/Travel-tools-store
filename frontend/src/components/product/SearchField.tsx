@@ -1,5 +1,5 @@
 import {useId} from "react";
-import {SearchIcon} from "@/components/SearchIcon";
+import {SearchIcon} from "@/components/icons/SearchIcon";
 
 export function SearchField({defaultValue}: {defaultValue?: string}) {
     // A fixed id would be duplicated if more than one SearchField is rendered on a page.
@@ -26,7 +26,7 @@ export function SearchField({defaultValue}: {defaultValue?: string}) {
                 aria-label="جستجو"
                 className="shrink-0 rounded-full p-2 text-zinc-500 transition-colors hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:text-zinc-400"
             >
-                <SearchIcon />
+                <SearchIcon className="size-5" />
             </button>
         </div>
     );

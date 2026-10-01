@@ -1,5 +1,5 @@
 import Link from "next/link";
-import {TelegramIcon} from "@/components/TelegramIcon";
+import {TelegramIcon} from "@/components/icons/TelegramIcon";
 
 export function Footer() {
     const year = new Date().getFullYear();

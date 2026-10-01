@@ -1,4 +1,4 @@
-export function SearchIcon() {
+export function CloseIcon({className}: {className?: string}) {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -8,11 +8,11 @@ export function SearchIcon() {
             strokeWidth={2}
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="size-5"
+            className={className}
             aria-hidden="true"
         >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
         </svg>
     );
 }

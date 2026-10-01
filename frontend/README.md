@@ -47,6 +47,8 @@ elsewhere.
   - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout. The header
     holds the global product search, pre-filled from the URL's `search` parameter.
   - `src/components/home/` — components used only by the home page.
+  - `src/components/icons/` — every SVG icon, one component per file (even single-use ones). Each takes an optional
+    `className`; callers set the size.
   - `src/components/product/` — product-specific components: detail page, catalog filters and sort, pagination, and the
     search form.
 - Shared visual tokens (`accent`, `background`, `foreground`) are defined once in `src/app/globals.css`'s `@theme`

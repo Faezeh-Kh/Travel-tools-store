@@ -1,43 +1,8 @@
 "use client";
 
 import {useRef, useState, type ReactNode} from "react";
-
-function FilterIcon() {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="size-4"
-            aria-hidden="true"
-        >
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-        </svg>
-    );
-}
-
-function CloseIcon() {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="size-5"
-            aria-hidden="true"
-        >
-            <line x1="18" y1="6" x2="6" y2="18" />
-            <line x1="6" y1="6" x2="18" y2="18" />
-        </svg>
-    );
-}
+import {CloseIcon} from "@/components/icons/CloseIcon";
+import {FilterIcon} from "@/components/icons/FilterIcon";
 
 /**
  * Filter button plus a modal drawer for screens below `lg`, where the filter sidebar is hidden.
@@ -58,7 +23,7 @@ export function ProductFilterDrawer({activeFilterCount, children}: {activeFilter
                 onClick={() => dialogRef.current?.showModal()}
                 className="flex items-center gap-2 rounded-md border border-zinc-300 px-3 py-1.5 text-sm hover:border-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent lg:hidden dark:border-zinc-700"
             >
-                <FilterIcon />
+                <FilterIcon className="size-4" />
                 فیلترها
                 {activeFilterCount > 0 && ` (${activeFilterCount.toLocaleString("fa-IR")})`}
             </button>
@@ -78,7 +43,7 @@ export function ProductFilterDrawer({activeFilterCount, children}: {activeFilter
                     aria-label="بستن"
                     className="absolute end-3 top-3 rounded-full p-1 text-zinc-500 hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                 >
-                    <CloseIcon />
+                    <CloseIcon className="size-5" />
                 </button>
                 <div key={contentKey}>{children}</div>
             </dialog>

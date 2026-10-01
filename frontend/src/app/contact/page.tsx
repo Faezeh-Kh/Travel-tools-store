@@ -1,5 +1,5 @@
 import type {Metadata} from "next";
-import {TelegramIcon} from "@/components/TelegramIcon";
+import {TelegramIcon} from "@/components/icons/TelegramIcon";
 
 export const metadata: Metadata = {
     title: "تماس با ما",

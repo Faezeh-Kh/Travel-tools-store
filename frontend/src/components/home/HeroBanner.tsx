@@ -3,6 +3,7 @@
 import {useState} from "react";
 import Image from "next/image";
 import Link from "next/link";
+import {ChevronIcon} from "@/components/icons/ChevronIcon";
 
 export const HERO_SLIDES = [
     {image: "/images/hero/hero-1.png", subtitle: "صبحی آرام کنار دریاچه، با چادر، فانوس و لوازم آشپزی سفری"},
@@ -14,24 +15,6 @@ export const HERO_SLIDES = [
 ];
 
 const CONTROL_FOCUS = "focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-foreground";
-
-function ChevronIcon({direction}: {direction: "left" | "right"}) {
-    return (
-        <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth={2}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="size-5"
-            aria-hidden="true"
-        >
-            <polyline points={direction === "left" ? "15 6 9 12 15 18" : "9 6 15 12 9 18"} />
-        </svg>
-    );
-}
 
 export function HeroBanner() {
     const [current, setCurrent] = useState(0);
@@ -80,7 +63,7 @@ export function HeroBanner() {
                             aria-label="تصویر قبلی"
                             className={`rounded-full bg-black/30 p-2 transition-colors hover:bg-black/50 ${CONTROL_FOCUS}`}
                         >
-                            <ChevronIcon direction="right" />
+                            <ChevronIcon direction="right" className="size-5" />
                         </button>
                         <div className="flex items-center">
                             {HERO_SLIDES.map((slide, index) => (
@@ -105,7 +88,7 @@ export function HeroBanner() {
                             aria-label="تصویر بعدی"
                             className={`rounded-full bg-black/30 p-2 transition-colors hover:bg-black/50 ${CONTROL_FOCUS}`}
                         >
-                            <ChevronIcon direction="left" />
+                            <ChevronIcon direction="left" className="size-5" />
                         </button>
                     </div>
                 </div>
