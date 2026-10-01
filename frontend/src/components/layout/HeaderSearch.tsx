@@ -1,7 +1,7 @@
 "use client";
 
 import {useSearchParams} from "next/navigation";
-import {ProductSearchForm} from "@/components/product/ProductSearchForm";
+import {ProductSearchForm} from "@/components/layout/ProductSearchForm";
 
 export function HeaderSearch({className}: {className?: string}) {
     const search = useSearchParams().get("search") ?? "";

@@ -47,13 +47,14 @@ bundle. Set both variables to the same value if you override the default.
 - `src/lib/format.ts` — shared formatting (Persian-locale prices).
 - `src/components/` — components shared across multiple pages (`ProductCard`, `CategoryCard`, `CtaLink`,
   `VariantSelector`, etc.).
-  - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout. The header
-    holds the global product search, pre-filled from the URL's `search` parameter.
+  - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout, and the
+    pieces only it uses. The header holds the global product search (`ProductSearchForm`), pre-filled from the URL's
+    `search` parameter by `HeaderSearch`.
   - `src/components/home/` — components used only by the home page.
   - `src/components/icons/` — every SVG icon, one component per file (even single-use ones). Each takes an optional
     `className`; callers set the size.
-  - `src/components/product/` — product-specific components: detail page, catalog filters and sort, pagination, and the
-    search form.
+  - `src/components/product/` — product-specific components: detail page, catalog filters and sort, and
+    pagination.
   - `src/components/cart/` — cart-specific components: shared state (`CartProvider`), the header indicator
     (`CartLink`), and the cart page content (`CartPageContent`).
 - Shared visual tokens (`accent`, `background`, `foreground`) are defined once in `src/app/globals.css`'s `@theme`

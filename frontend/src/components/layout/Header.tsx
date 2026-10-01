@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {Suspense} from "react";
-import {ProductSearchForm} from "@/components/product/ProductSearchForm";
+import {ProductSearchForm} from "@/components/layout/ProductSearchForm";
 import {HeaderSearch} from "@/components/layout/HeaderSearch";
 import {CartLink} from "@/components/cart/CartLink";
 
