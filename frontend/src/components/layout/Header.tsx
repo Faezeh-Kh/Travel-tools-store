@@ -2,6 +2,7 @@ import Link from "next/link";
 import {Suspense} from "react";
 import {ProductSearchForm} from "@/components/product/ProductSearchForm";
 import {HeaderSearch} from "@/components/layout/HeaderSearch";
+import {CartLink} from "@/components/cart/CartLink";
 
 const SEARCH_CLASS_NAME = "flex min-w-60 flex-1";
 
@@ -24,12 +25,6 @@ export function Header() {
                 </div>
                 <nav aria-label="ناوبری اصلی" className="flex items-center gap-4 text-sm">
                     <Link
-                        href="/"
-                        className="rounded hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-                    >
-                        خانه
-                    </Link>
-                    <Link
                         href="/products"
                         className="rounded hover:text-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
                     >
@@ -41,6 +36,7 @@ export function Header() {
                     >
                         تماس با ما
                     </Link>
+                    <CartLink />
                 </nav>
             </div>
         </header>
