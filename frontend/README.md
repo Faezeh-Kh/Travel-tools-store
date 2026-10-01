@@ -23,7 +23,9 @@ data — every page fetches from it server-side.
 
 The API base URL is read from the `API_BASE_URL` environment variable, defaulting to `http://localhost:8080` if
 unset (see `src/lib/api/config.ts`). Set it in a local `.env.local` file (git-ignored) if your backend runs
-elsewhere.
+elsewhere. Cart calls run client-side (unlike every other page fetch, which runs server-side), so they instead read
+`NEXT_PUBLIC_API_BASE_URL` — the `NEXT_PUBLIC_` prefix is required for Next.js to inline a variable into the browser
+bundle. Set both variables to the same value if you override the default.
 
 ## Routes
 
@@ -34,6 +36,7 @@ elsewhere.
 | `/products/[slug]` | Product detail: image, info, variant selection with live price/stock. |
 | `/categories/[slug]` | Category detail (name/description) with a paginated list of that category's products and a link to filter them in the full catalog. |
 | `/contact` | Static contact page: shop address with an embedded OpenStreetMap map and a Neshan directions link, opening hours, and phone/email/Telegram cards. Details live in one `CONTACT` constant in `page.tsx`. |
+| `/cart` | Cart: item list with quantity steppers and removal, a header badge kept in sync via shared `CartProvider` state. No checkout yet — that's Phase 6. |
 
 ## Project structure and conventions
 
@@ -51,6 +54,8 @@ elsewhere.
     `className`; callers set the size.
   - `src/components/product/` — product-specific components: detail page, catalog filters and sort, pagination, and the
     search form.
+  - `src/components/cart/` — cart-specific components: shared state (`CartProvider`), the header indicator
+    (`CartLink`), and the cart page content (`CartPageContent`).
 - Shared visual tokens (`accent`, `background`, `foreground`) are defined once in `src/app/globals.css`'s `@theme`
   block. Reuse `CtaLink` for button-styled links rather than duplicating its class list.
 - **Image handling**: no image-storage infrastructure exists yet (admin upload is Phase 7 work). Any component
@@ -77,6 +82,9 @@ component:
   `ProductFilterDrawer`, `Pagination`) — including that each control preserves the rest of the URL state.
 - `src/app/contact/page.test.tsx` — the contact page's links, map embed, and opening hours (a synchronous Server
   Component, so it renders under Vitest).
+- `src/components/cart/*.test.tsx` — shared cart state (`CartProvider`, including the mutation guard and
+  initial-load-failure recovery), the header cart indicator (`CartLink`), and the cart page (`CartPageContent`),
+  including quantity changes, removal, and a stock-conflict error anchored to the row that caused it.
 
 `async` Server Components (every `page.tsx` that fetches data) are **not** unit-tested — per the Next.js docs for
 the installed version, Vitest does not currently support rendering them. Coverage for those belongs to end-to-end
