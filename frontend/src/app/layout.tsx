@@ -2,6 +2,7 @@ import type {Metadata} from "next";
 import {Vazirmatn} from "next/font/google";
 import {Header} from "@/components/layout/Header";
 import {Footer} from "@/components/layout/Footer";
+import {CartProvider} from "@/components/cart/CartProvider";
 import "./globals.css";
 
 const vazirmatn = Vazirmatn({
@@ -18,9 +19,11 @@ export default function RootLayout({children}: LayoutProps<"/">) {
     return (
         <html lang="fa" dir="rtl" className={`${vazirmatn.variable} h-full antialiased`}>
         <body className="min-h-full flex flex-col">
-        <Header />
-        {children}
-        <Footer />
+        <CartProvider>
+            <Header />
+            {children}
+            <Footer />
+        </CartProvider>
         </body>
         </html>
     );

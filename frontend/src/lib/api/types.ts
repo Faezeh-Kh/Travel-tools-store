@@ -57,3 +57,21 @@ export type ProductSearchParams = {
   page?: number;
   size?: number;
 };
+
+export type CartItem = {
+  id: number;
+  productVariantId: number;
+  productName: string;
+  sku: string;
+  attributes: Record<string, string>;
+  unitPrice: number;
+  quantity: number;
+  totalPrice: number;
+};
+
+export type Cart = {
+  id: string | null;
+  items: CartItem[];
+  subtotal: number;
+  totalPrice: number;
+};
