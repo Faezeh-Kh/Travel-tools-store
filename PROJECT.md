@@ -79,7 +79,8 @@ prerequisites, configuration, local database/Docker setup, application startup, 
 
 Frontend code organizes by usage scope: components shared across multiple pages live directly under
 `frontend/src/components/`; components used by exactly one area live in a matching subfolder (`layout/` for the
-site-wide header/footer, `home/` for home-page-only sections, `product/` for product-detail-only pieces). All
+site-wide header/footer, `home/` for home-page-only sections, `product/` for product listing/detail pieces). Every
+SVG icon is its own component file under `frontend/src/components/icons/`, even when only one component uses it. All
 backend calls go through `frontend/src/lib/api/`; no component calls `fetch` directly. Shared visual tokens (accent
 color, background/foreground) live in `globals.css`'s `@theme` block; reuse `CtaLink` for button-styled links rather
 than duplicating its class list.
@@ -92,9 +93,6 @@ Frontend tests favor a small number of behavior-focused areas (API response/erro
 utilities, section-level rendering, and components with real conditional or interactive logic) over one test file
 per component. `async` Server Components are not currently unit-testable with Vitest; cover them with end-to-end
 tests once that tooling is adopted, not with additional unit tests.
-
-Category-scoped product listings (browsing only a category's products) require a backend filter capability that
-does not exist yet; that capability belongs to Phase 4 (Discovery), not Phase 3.
 
 ## Delivery sequence
 

@@ -68,11 +68,15 @@ Vitest + React Testing Library. The suite favors a small number of behavior-focu
 component:
 
 - `src/lib/api/*.test.ts` — API layer: success parsing, error handling, 404 → `notFound()`.
-- `src/lib/format.test.ts` — price formatting edge cases.
+- `src/lib/*.test.ts` — pure helpers: price formatting, URL search-param parsing/building, pagination ranges.
 - `src/components/home/home-sections.test.tsx` — section-level rendering (populated/empty states), exercising real
   card children rather than mocking them.
 - `src/components/image-fallback.test.tsx` — the image/placeholder/`onError` pattern described above.
-- `src/components/VariantSelector.test.tsx` — the one component with real interactive/stateful logic.
+- Components with real conditional or interactive logic: `VariantSelector`, the hero slideshow (`HeroBanner`), the
+  header search (`Header`, `ProductSearchForm`), and the catalog controls (`ProductFilters`, `ProductSortSelect`,
+  `ProductFilterDrawer`, `Pagination`) — including that each control preserves the rest of the URL state.
+- `src/app/contact/page.test.tsx` — the contact page's links, map embed, and opening hours (a synchronous Server
+  Component, so it renders under Vitest).
 
 `async` Server Components (every `page.tsx` that fetches data) are **not** unit-tested — per the Next.js docs for
 the installed version, Vitest does not currently support rendering them. Coverage for those belongs to end-to-end
