@@ -2,6 +2,7 @@
 
 import {createContext, type ReactNode, useCallback, useContext, useEffect, useRef, useState} from "react";
 import {addCartItem, CartError, getCart, removeCartItem, updateCartItemQuantity} from "@/lib/api/cart";
+import {cartErrorMessage} from "@/lib/cartErrorMessages";
 import type {Cart} from "@/lib/api/types";
 
 const EMPTY_CART: Cart = {id: null, items: [], subtotal: 0, totalPrice: 0};
@@ -10,8 +11,9 @@ const EMPTY_CART: Cart = {id: null, items: [], subtotal: 0, totalPrice: 0};
 // resolving - a caller awaiting addItem()/etc. must see this as a rejection, not a success. Reuses
 // CartError (same shape every other cart failure already has) rather than a new error type, so
 // existing `instanceof CartError` handling covers this case too with no special-casing. Deliberately
-// does NOT set the shared `error` state (see the throw site below) - it's caller-only.
-const CART_BUSY_ERROR = new CartError("CLIENT_BUSY", "عملیات قبلی هنوز در حال انجام است.");
+// does NOT set the shared `error` state (see the throw site below) - it's caller-only. The message
+// argument is English/debug-only - display text comes from cartErrorMessages, keyed by code.
+const CART_BUSY_ERROR = new CartError("CLIENT_BUSY", "Client busy: a mutation is already in flight.");
 
 type CartContextValue = {
     // While isLoading is true, cart is just the EMPTY_CART placeholder, not real data. Once isLoading
@@ -52,7 +54,7 @@ export function CartProvider({children}: { children: ReactNode }) {
             setCart(await getCart());
             setError(null);
         } catch (err) {
-            setError(err instanceof CartError ? err.message : "خطا در بارگذاری سبد خرید.");
+            setError(cartErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
@@ -79,7 +81,7 @@ export function CartProvider({children}: { children: ReactNode }) {
         try {
             setCart(await mutate());
         } catch (err) {
-            setError(err instanceof CartError ? err.message : "خطایی رخ داد.");
+            setError(cartErrorMessage(err));
             throw err;
         } finally {
             isMutatingRef.current = false;

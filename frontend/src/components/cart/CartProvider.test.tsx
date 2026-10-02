@@ -103,7 +103,8 @@ describe("CartProvider", () => {
         const {getContext} = renderCart();
 
         await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
-        expect(screen.getByTestId("error")).toHaveTextContent("Cart request failed: 500");
+        // "UNKNOWN" has no specific Persian mapping, so the generic fallback is expected here.
+        expect(screen.getByTestId("error")).toHaveTextContent("خطایی رخ داد.");
         expect(screen.getByTestId("count")).toHaveTextContent("0");
 
         getCart.mockResolvedValueOnce(cartWithOneItem());
@@ -167,8 +168,8 @@ describe("CartProvider", () => {
 
         await expect(getContext().addItem(10, 5)).rejects.toBeInstanceOf(CartError);
 
-        await waitFor(() => expect(screen.getByTestId("error"))
-                .toHaveTextContent("Only 1 unit(s) of TENT-3P-GRN are available."));
+        // The CONFLICT code maps to a fixed Persian message, regardless of the backend's own wording.
+        await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent("موجودی این محصول کافی نیست."));
         expect(screen.getByTestId("count")).toHaveTextContent("1");
         // The failure must not leave isMutating/the guard stuck "on" - both the display flag and a
         // subsequent mutation actually being allowed to run prove the finally block reset them.
