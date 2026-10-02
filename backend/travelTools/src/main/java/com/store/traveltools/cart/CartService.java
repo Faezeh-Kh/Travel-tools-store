@@ -164,11 +164,14 @@ public class CartService {
 
     private static CartItemResponse toItemResponse(CartItem item) {
         ProductVariant variant = item.getProductVariant();
+        var product = variant.getProduct();
         BigDecimal unitPrice = variant.getPrice();
         BigDecimal totalPrice = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+        // Same "first image is primary" convention as ProductRepository's catalog query (images ->> 0).
+        String primaryImage = product.getImages().isEmpty() ? null : product.getImages().get(0);
         return new CartItemResponse(
-                item.getId(), variant.getId(), variant.getProduct().getName(), variant.getSku(),
-                variant.getAttributes(), unitPrice, item.getQuantity(), totalPrice);
+                item.getId(), variant.getId(), product.getName(), product.getSlug(), primaryImage, variant.getSku(),
+                variant.getAttributes(), unitPrice, item.getQuantity(), totalPrice, variant.getStockQuantity());
     }
 
     private static CartResponse emptyCart() {

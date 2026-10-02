@@ -64,6 +64,8 @@ class CartServiceTest {
         Product product = mock(Product.class);
         lenient().when(product.getName()).thenReturn(productName);
         lenient().when(product.isActive()).thenReturn(productActive);
+        lenient().when(product.getSlug()).thenReturn(productName.toLowerCase().replace(" ", "-"));
+        lenient().when(product.getImages()).thenReturn(List.of("https://example.com/" + sku + ".jpg"));
 
         ProductVariant variant = mock(ProductVariant.class);
         lenient().when(variant.getId()).thenReturn(id);
@@ -305,10 +307,11 @@ class CartServiceTest {
         assertThat(response).isEqualTo(new CartResponse(
                 cartId,
                 List.of(
-                        new CartItemResponse(null, 10L, "Product A", "SKU-A", Map.of("Color", "Red"),
-                                new BigDecimal("100.00"), 2, new BigDecimal("200.00")),
-                        new CartItemResponse(null, 11L, "Product B", "SKU-B", Map.of(),
-                                new BigDecimal("50.00"), 3, new BigDecimal("150.00"))),
+                        new CartItemResponse(null, 10L, "Product A", "product-a", "https://example.com/SKU-A.jpg",
+                                "SKU-A", Map.of("Color", "Red"), new BigDecimal("100.00"), 2,
+                                new BigDecimal("200.00"), 10),
+                        new CartItemResponse(null, 11L, "Product B", "product-b", "https://example.com/SKU-B.jpg",
+                                "SKU-B", Map.of(), new BigDecimal("50.00"), 3, new BigDecimal("150.00"), 10)),
                 new BigDecimal("350.00"),
                 new BigDecimal("350.00")));
     }

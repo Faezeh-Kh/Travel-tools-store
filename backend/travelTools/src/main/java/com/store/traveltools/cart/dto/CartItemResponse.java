@@ -7,9 +7,12 @@ public record CartItemResponse(
         Long id,
         Long productVariantId,
         String productName,
+        String productSlug,
+        String primaryImage,
         String sku,
         Map<String, String> attributes,
         BigDecimal unitPrice,
         Integer quantity,
-        BigDecimal totalPrice) {
+        BigDecimal totalPrice,
+        Integer stockQuantity) {
 }
