@@ -41,21 +41,27 @@ function cartWithItems(): Cart {
                 id: 1,
                 productVariantId: 10,
                 productName: "چادر کوهنوردی ۳ نفره",
+                productSlug: "tent-3-person-mountaineering",
+                primaryImage: null,
                 sku: "TENT-3P-GRN",
                 attributes: {رنگ: "سبز"},
                 unitPrice: 4850000,
                 quantity: 3,
                 totalPrice: 14550000,
+                stockQuantity: 12,
             },
             {
                 id: 2,
                 productVariantId: 11,
                 productName: "صندلی تاشو کمپینگ",
+                productSlug: "folding-camping-chair",
+                primaryImage: null,
                 sku: "CHAIR-FOLD-STD",
                 attributes: {},
                 unitPrice: 950000,
                 quantity: 1,
                 totalPrice: 950000,
+                stockQuantity: 25,
             },
         ],
         subtotal: 15500000,
@@ -106,6 +112,48 @@ describe("CartPageContent", () => {
         expect(screen.getByText("رنگ: سبز")).toBeInTheDocument();
         expect(screen.getByText("جمع کل")).toBeInTheDocument();
         expect(screen.getByText(`${(15500000).toLocaleString("fa-IR")} ریال`)).toBeInTheDocument();
+    });
+
+    it("links the product thumbnail and name to the product detail page, and scrolls a long list internally", async () => {
+        const cart = cartWithItems();
+        cart.items[0].primaryImage = "/images/products/tent-3-person-mountaineering/1.jpg";
+        getCart.mockResolvedValue(cart);
+
+        renderPage();
+        const tentRow = (await screen.findByText("چادر کوهنوردی ۳ نفره")).closest("li") as HTMLElement;
+
+        // Both the thumbnail (its alt text) and the name resolve to the same accessible link name.
+        const links = within(tentRow).getAllByRole("link", {name: "چادر کوهنوردی ۳ نفره"});
+        expect(links).toHaveLength(2);
+        for (const link of links) {
+            expect(link).toHaveAttribute("href", "/products/tent-3-person-mountaineering");
+        }
+        // No real layout/overflow in jsdom - this is the only observable signal that the list is set up
+        // to scroll internally once it has many items, instead of just growing the page indefinitely.
+        const list = screen.getByRole("list");
+        expect(list.className).toContain("overflow-y-auto");
+    });
+
+    it("leaves + usable when the item's quantity is below its stock limit", async () => {
+        getCart.mockResolvedValue(cartWithItems());
+
+        renderPage();
+        // cartWithItems gives the chair quantity 1 and stock 25, so it's nowhere near its limit yet.
+        const chairRow = (await screen.findByText("صندلی تاشو کمپینگ")).closest("li") as HTMLElement;
+
+        expect(within(chairRow).getByRole("button", {name: "افزایش تعداد صندلی تاشو کمپینگ"})).not.toBeDisabled();
+    });
+
+    it("disables + once the item's quantity reaches its stock limit, leaving - usable", async () => {
+        const cart = cartWithItems();
+        cart.items = [{...cart.items[1], quantity: 25}];
+        getCart.mockResolvedValue(cart);
+
+        renderPage();
+        const chairRow = (await screen.findByText("صندلی تاشو کمپینگ")).closest("li") as HTMLElement;
+
+        expect(within(chairRow).getByRole("button", {name: "افزایش تعداد صندلی تاشو کمپینگ"})).toBeDisabled();
+        expect(within(chairRow).getByRole("button", {name: "کاهش تعداد صندلی تاشو کمپینگ"})).not.toBeDisabled();
     });
 
     it("shows the error and a retry button when the initial load fails, and retry recovers", async () => {

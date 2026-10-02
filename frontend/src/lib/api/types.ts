@@ -62,11 +62,14 @@ export type CartItem = {
   id: number;
   productVariantId: number;
   productName: string;
+  productSlug: string;
+  primaryImage: string | null;
   sku: string;
   attributes: Record<string, string>;
   unitPrice: number;
   quantity: number;
   totalPrice: number;
+  stockQuantity: number;
 };
 
 export type Cart = {

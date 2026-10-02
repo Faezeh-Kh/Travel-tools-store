@@ -2,6 +2,7 @@
 
 import {useState} from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {useCart} from "@/components/cart/CartProvider";
 import {cartErrorMessage} from "@/lib/cartErrorMessages";
 import {formatPrice} from "@/lib/format";
@@ -9,18 +10,23 @@ import {TrashIcon} from "@/components/icons/TrashIcon";
 import {ErrorAlert} from "@/components/ErrorAlert";
 import type {CartItem} from "@/lib/api/types";
 
+// enabled:hover (not plain hover): :disabled doesn't block :hover from matching on its own, so an
+// unqualified hover:* would still visibly react on a disabled button. Scoping it to :enabled makes the
+// hover state itself communicate pressability, not just the dimmed opacity.
 const STEPPER_BUTTON_CLASS_NAME =
-    "flex size-7 items-center justify-center rounded border border-zinc-300 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-800";
+    "flex size-7 items-center justify-center rounded border border-zinc-300 enabled:hover:border-accent enabled:hover:bg-accent/10 disabled:opacity-40 dark:border-zinc-700";
 
 function QuantityStepper({
     productName,
     quantity,
     disabled,
+    atStockLimit,
     onChange,
 }: {
     productName: string;
     quantity: number;
     disabled: boolean;
+    atStockLimit: boolean;
     onChange: (quantity: number) => void;
 }) {
     return (
@@ -28,7 +34,7 @@ function QuantityStepper({
             <button
                 type="button"
                 aria-label={`افزایش تعداد ${productName}`}
-                disabled={disabled}
+                disabled={disabled || atStockLimit}
                 onClick={() => onChange(quantity + 1)}
                 className={STEPPER_BUTTON_CLASS_NAME}
             >
@@ -50,6 +56,37 @@ function QuantityStepper({
     );
 }
 
+// Exported so it can sit alongside ProductCard/CategoryCard in image-fallback.test.tsx, the project's
+// one designated file for this placeholder/onError pattern, instead of duplicating that coverage here.
+export function CartItemThumbnail({item}: {item: CartItem}) {
+    const [imageFailed, setImageFailed] = useState(false);
+
+    if (!item.primaryImage || imageFailed) {
+        return (
+            <div className="flex size-16 shrink-0 items-center justify-center rounded-md bg-zinc-100 text-center text-[10px] text-zinc-400 dark:bg-zinc-900">
+                بدون تصویر
+            </div>
+        );
+    }
+
+    return (
+        <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900">
+            <Image
+                src={item.primaryImage}
+                alt={item.productName}
+                fill
+                sizes="64px"
+                // Temporary: no real image storage exists yet, so there's no known domain to allowlist in
+                // next.config.ts. Once Phase 7 adds real upload/storage, add that origin to
+                // images.remotePatterns and drop this prop.
+                unoptimized
+                className="object-cover"
+                onError={() => setImageFailed(true)}
+            />
+        </div>
+    );
+}
+
 function CartItemRow({
     item,
     disabled,
@@ -63,6 +100,7 @@ function CartItemRow({
 }) {
     const [rowError, setRowError] = useState<string | null>(null);
     const attributeEntries = Object.entries(item.attributes);
+    const atStockLimit = item.quantity >= item.stockQuantity;
 
     // Runs a cart mutation for this row and shows any failure next to the row instead of page-wide.
     async function runRowAction(action: () => Promise<void>) {
@@ -77,13 +115,23 @@ function CartItemRow({
     return (
         <li className="flex flex-col gap-2 border-b border-zinc-200 py-4 dark:border-zinc-800">
             <div className="flex items-start justify-between gap-4">
-                <div>
-                    <p className="font-semibold">{item.productName}</p>
-                    {attributeEntries.length > 0 && (
-                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                            {attributeEntries.map(([key, value]) => `${key}: ${value}`).join("، ")}
-                        </p>
-                    )}
+                <div className="flex items-start gap-3">
+                    <Link href={`/products/${item.productSlug}`} className="shrink-0 rounded">
+                        <CartItemThumbnail item={item} />
+                    </Link>
+                    <div>
+                        <Link
+                            href={`/products/${item.productSlug}`}
+                            className="rounded font-semibold hover:text-accent hover:underline"
+                        >
+                            {item.productName}
+                        </Link>
+                        {attributeEntries.length > 0 && (
+                            <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                                {attributeEntries.map(([key, value]) => `${key}: ${value}`).join("، ")}
+                            </p>
+                        )}
+                    </div>
                 </div>
                 <div className="flex flex-col items-end gap-2">
                     <div className="whitespace-nowrap text-end">
@@ -97,6 +145,7 @@ function CartItemRow({
                             productName={item.productName}
                             quantity={item.quantity}
                             disabled={disabled}
+                            atStockLimit={atStockLimit}
                             onChange={(quantity) => void runRowAction(() => onUpdateQuantity(item.id, quantity))}
                         />
                         <button
@@ -104,14 +153,14 @@ function CartItemRow({
                             aria-label={`حذف ${item.productName}`}
                             disabled={disabled}
                             onClick={() => void runRowAction(() => onRemove(item.id))}
-                            className="rounded p-1 text-zinc-500 hover:text-accent disabled:opacity-40"
+                            className="rounded p-1 text-zinc-500 enabled:hover:text-accent disabled:opacity-40"
                         >
                             <TrashIcon className="size-5" />
                         </button>
                     </div>
+                    {rowError && <ErrorAlert onDismiss={() => setRowError(null)}>{rowError}</ErrorAlert>}
                 </div>
             </div>
-            {rowError && <ErrorAlert onDismiss={() => setRowError(null)}>{rowError}</ErrorAlert>}
         </li>
     );
 }
@@ -178,7 +227,9 @@ export function CartPageContent() {
 
     return (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_18rem]">
-            <ul className="flex min-w-0 flex-col">
+            {/* pe-3: breathing room between the scrollbar and row content - under RTL the scrollbar
+                renders on the physical left, the same side the price/actions column is aligned to. */}
+            <ul className="flex max-h-[70vh] min-w-0 flex-col overflow-y-auto pe-3">
                 {cart.items.map((item) => (
                     <CartItemRow
                         key={item.id}

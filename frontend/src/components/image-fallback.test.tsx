@@ -2,7 +2,8 @@ import {describe, expect, it} from "vitest";
 import {render, screen, fireEvent} from "@testing-library/react";
 import {ProductCard} from "./ProductCard";
 import {CategoryCard} from "./CategoryCard";
-import type {Category, ProductSummary} from "@/lib/api/types";
+import {CartItemThumbnail} from "./cart/CartPageContent";
+import type {Category, ProductSummary, CartItem} from "@/lib/api/types";
 
 const productWithImage: ProductSummary = {
     id: 1,
@@ -30,6 +31,25 @@ const categoryWithImage: Category = {
 const categoryWithoutImage: Category = {
     ...categoryWithImage,
     imageUrl: null,
+};
+
+const cartItemWithImage: CartItem = {
+    id: 1,
+    productVariantId: 1,
+    productName: "چادر کوهنوردی ۳ نفره",
+    productSlug: "tent-3-person-mountaineering",
+    primaryImage: "/images/products/tent-3-person-mountaineering/1.jpg",
+    sku: "TENT-3P-GRN",
+    attributes: {},
+    unitPrice: 4850000,
+    quantity: 1,
+    totalPrice: 4850000,
+    stockQuantity: 12,
+};
+
+const cartItemWithoutImage: CartItem = {
+    ...cartItemWithImage,
+    primaryImage: null,
 };
 
 describe("ProductCard image fallback", () => {
@@ -79,5 +99,30 @@ describe("CategoryCard image fallback", () => {
 
         expect(screen.getByText("بدون تصویر")).toBeInTheDocument();
         expect(screen.queryByAltText(categoryWithImage.name)).not.toBeInTheDocument();
+    });
+});
+
+describe("CartItemThumbnail image fallback", () => {
+    it("shows the placeholder when there is no primary image", () => {
+        render(<CartItemThumbnail item={cartItemWithoutImage} />);
+
+        expect(screen.getByText("بدون تصویر")).toBeInTheDocument();
+        expect(screen.queryByAltText(cartItemWithoutImage.productName)).not.toBeInTheDocument();
+    });
+
+    it("renders the real image when a primary image exists", () => {
+        render(<CartItemThumbnail item={cartItemWithImage} />);
+
+        expect(screen.getByAltText(cartItemWithImage.productName)).toBeInTheDocument();
+        expect(screen.queryByText("بدون تصویر")).not.toBeInTheDocument();
+    });
+
+    it("falls back to the placeholder when the image fails to load", () => {
+        render(<CartItemThumbnail item={cartItemWithImage} />);
+
+        fireEvent.error(screen.getByAltText(cartItemWithImage.productName));
+
+        expect(screen.getByText("بدون تصویر")).toBeInTheDocument();
+        expect(screen.queryByAltText(cartItemWithImage.productName)).not.toBeInTheDocument();
     });
 });
