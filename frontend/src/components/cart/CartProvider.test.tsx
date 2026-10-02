@@ -76,7 +76,7 @@ function TestConsumer({onContext}: {onContext: (context: ReturnType<typeof useCa
             <span data-testid="loading">{String(context.isLoading)}</span>
             <span data-testid="mutating">{String(context.isMutating)}</span>
             <span data-testid="count">{context.cart.items.length}</span>
-            <span data-testid="error">{context.error ?? ""}</span>
+            <span data-testid="loadError">{context.loadError ?? ""}</span>
         </div>
     );
 }
@@ -100,20 +100,20 @@ describe("CartProvider", () => {
         expect(screen.getByTestId("count")).toHaveTextContent("1");
     });
 
-    it("clears isLoading and exposes the error when the initial load fails, and refresh() can recover", async () => {
+    it("clears isLoading and exposes loadError when the initial load fails, and refresh() can recover", async () => {
         getCart.mockRejectedValueOnce(new CartError("UNKNOWN", "Cart request failed: 500"));
 
         const {getContext} = renderCart();
 
         await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
         // "UNKNOWN" has no specific Persian mapping, so the generic fallback is expected here.
-        expect(screen.getByTestId("error")).toHaveTextContent("خطایی رخ داد.");
+        expect(screen.getByTestId("loadError")).toHaveTextContent("خطایی رخ داد.");
         expect(screen.getByTestId("count")).toHaveTextContent("0");
 
         getCart.mockResolvedValueOnce(cartWithOneItem());
         await getContext().refresh();
 
-        await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent(""));
+        await waitFor(() => expect(screen.getByTestId("loadError")).toHaveTextContent(""));
         expect(screen.getByTestId("count")).toHaveTextContent("1");
     });
 
@@ -162,17 +162,18 @@ describe("CartProvider", () => {
         await waitFor(() => expect(screen.getByTestId("count")).toHaveTextContent("0"));
     });
 
-    it("surfaces a failed mutation's message without clearing the cart, and recovers for the next mutation", async () => {
+    it("rejects a failed mutation to its caller without touching loadError or the cart, and recovers for the next mutation", async () => {
         getCart.mockResolvedValue(cartWithOneItem());
         addCartItem.mockRejectedValueOnce(new CartError("CONFLICT", "Only 1 unit(s) of TENT-3P-GRN are available."));
 
         const {getContext} = renderCart();
         await waitFor(() => expect(screen.getByTestId("loading")).toHaveTextContent("false"));
 
-        await expect(getContext().addItem(10, 5)).rejects.toBeInstanceOf(CartError);
+        await expect(getContext().addItem(10, 5)).rejects.toMatchObject({code: "CONFLICT"});
 
-        // The CONFLICT code maps to a fixed Persian message, regardless of the backend's own wording.
-        await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent("موجودی این محصول کافی نیست."));
+        // A mutation failure is the caller's concern now, not the shared (load-only) state - the
+        // caller (CartItemRow/VariantSelector) is the one that displays it, keyed by code.
+        expect(screen.getByTestId("loadError")).toHaveTextContent("");
         expect(screen.getByTestId("count")).toHaveTextContent("1");
         // The failure must not leave isMutating/the guard stuck "on" - both the display flag and a
         // subsequent mutation actually being allowed to run prove the finally block reset them.
@@ -182,7 +183,7 @@ describe("CartProvider", () => {
         await getContext().addItem(10, 5);
 
         expect(addCartItem).toHaveBeenCalledTimes(2);
-        await waitFor(() => expect(screen.getByTestId("error")).toHaveTextContent(""));
+        expect(screen.getByTestId("count")).toHaveTextContent("1");
     });
 
     it("rejects a mutation attempted while another is still in flight, without calling the API a second time", async () => {

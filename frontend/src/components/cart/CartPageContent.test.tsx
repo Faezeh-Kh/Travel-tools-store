@@ -114,7 +114,7 @@ describe("CartPageContent", () => {
         expect(screen.getByText(`${(15500000).toLocaleString("fa-IR")} ریال`)).toBeInTheDocument();
     });
 
-    it("links the product thumbnail and name to the product detail page, and scrolls a long list internally", async () => {
+    it("links the product thumbnail and name to the product detail page", async () => {
         const cart = cartWithItems();
         cart.items[0].primaryImage = "/images/products/tent-3-person-mountaineering/1.jpg";
         getCart.mockResolvedValue(cart);
@@ -128,10 +128,6 @@ describe("CartPageContent", () => {
         for (const link of links) {
             expect(link).toHaveAttribute("href", "/products/tent-3-person-mountaineering");
         }
-        // No real layout/overflow in jsdom - this is the only observable signal that the list is set up
-        // to scroll internally once it has many items, instead of just growing the page indefinitely.
-        const list = screen.getByRole("list");
-        expect(list.className).toContain("overflow-y-auto");
     });
 
     it("leaves + usable when the item's quantity is below its stock limit", async () => {

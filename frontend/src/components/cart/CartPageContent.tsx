@@ -196,7 +196,7 @@ function EmptyCart() {
 
 function CartSummary({totalPrice}: {totalPrice: number}) {
     return (
-        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50 p-5 sm:sticky sm:top-24 dark:bg-zinc-900">
+        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50 p-5 lg:sticky lg:top-24 dark:bg-zinc-900">
             <h2 className="font-semibold">جزئیات پرداخت</h2>
             <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
                 <span className="text-zinc-600 dark:text-zinc-400">جمع کل</span>
@@ -207,18 +207,16 @@ function CartSummary({totalPrice}: {totalPrice: number}) {
 }
 
 export function CartPageContent() {
-    const {cart, isLoading, isMutating, error, updateQuantity, removeItem, refresh} = useCart();
+    const {cart, isLoading, isMutating, loadError, updateQuantity, removeItem, refresh} = useCart();
 
     if (isLoading) {
         return <p className="text-zinc-500 dark:text-zinc-400">در حال بارگذاری سبد خرید...</p>;
     }
 
-    // `error` also carries mutation failures (set by CartProvider's runMutation), but those are shown
-    // per-row via each CartItemRow's own local state instead. This branch only ever matters for a
-    // genuine initial-load failure: a mutation failure can't reach it, since cart.items is only ever
-    // empty here from the initial state or from a successful removal, both of which clear `error`.
-    if (error && cart.items.length === 0) {
-        return <CartLoadError message={error} onRetry={() => void refresh()} />;
+    // loadError only ever reflects the initial load (see CartProvider) - a mutation failure can't reach
+    // it, so there's no need to also check cart.items.length here.
+    if (loadError) {
+        return <CartLoadError message={loadError} onRetry={() => void refresh()} />;
     }
 
     if (cart.items.length === 0) {
@@ -226,10 +224,8 @@ export function CartPageContent() {
     }
 
     return (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_18rem]">
-            {/* pe-3: breathing room between the scrollbar and row content - under RTL the scrollbar
-                renders on the physical left, the same side the price/actions column is aligned to. */}
-            <ul className="flex max-h-[70vh] min-w-0 flex-col overflow-y-auto pe-3">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_18rem]">
+            <ul className="flex min-w-0 flex-col">
                 {cart.items.map((item) => (
                     <CartItemRow
                         key={item.id}

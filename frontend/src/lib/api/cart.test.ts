@@ -55,8 +55,11 @@ describe("getCart", () => {
             json: async () => ({code: "CONFLICT", message: "Only 3 unit(s) of TENT-3P-GRN are available."}),
         });
 
-        await expect(getCart()).rejects.toBeInstanceOf(CartError);
-        await expect(getCart()).rejects.toMatchObject({
+        // Captured once: this is a single real fetch, not two separate calls to assert on separately.
+        const error = await getCart().catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(CartError);
+        expect(error).toMatchObject({
             code: "CONFLICT",
             message: "Only 3 unit(s) of TENT-3P-GRN are available.",
         });
@@ -71,8 +74,10 @@ describe("getCart", () => {
             },
         });
 
-        await expect(getCart()).rejects.toBeInstanceOf(CartError);
-        await expect(getCart()).rejects.toMatchObject({code: "UNKNOWN", message: "Cart request failed: 500"});
+        const error = await getCart().catch((e: unknown) => e);
+
+        expect(error).toBeInstanceOf(CartError);
+        expect(error).toMatchObject({code: "UNKNOWN", message: "Cart request failed: 500"});
     });
 });
 

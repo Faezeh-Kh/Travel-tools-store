@@ -16,24 +16,23 @@ const CART_SYNC_CHANNEL = "cart-sync";
 // Thrown when a mutation is attempted while another one is still in flight, instead of silently
 // resolving - a caller awaiting addItem()/etc. must see this as a rejection, not a success. Reuses
 // CartError (same shape every other cart failure already has) rather than a new error type, so
-// existing `instanceof CartError` handling covers this case too with no special-casing. Deliberately
-// does NOT set the shared `error` state (see the throw site below) - it's caller-only. The message
+// existing `instanceof CartError` handling covers this case too with no special-casing. The message
 // argument is English/debug-only - display text comes from cartErrorMessages, keyed by code.
 const CART_BUSY_ERROR = new CartError("CLIENT_BUSY", "Client busy: a mutation is already in flight.");
 
 type CartContextValue = {
     // While isLoading is true, cart is just the EMPTY_CART placeholder, not real data. Once isLoading
-    // is false, cart has genuinely loaded UNLESS error is also set - if the initial fetch failed, cart
-    // stays at EMPTY_CART and that's indistinguishable from "a real cart with zero items" by shape
-    // alone. Consumers that need to tell these apart must check `error`, not just `cart.items.length`.
+    // is false, cart has genuinely loaded UNLESS loadError is also set - if the initial fetch failed,
+    // cart stays at EMPTY_CART and that's indistinguishable from "a real cart with zero items" by shape
+    // alone. Consumers that need to tell these apart must check `loadError`, not just `cart.items.length`.
     cart: Cart;
     isLoading: boolean;
     isMutating: boolean;
-    // Reflects the most recent failure of the initial load OR a mutation - not a client-side guard
-    // rejection (see CART_BUSY_ERROR above), which is surfaced only via the rejected promise to
-    // whichever caller triggered it. Cleared at the start of every mutation and on a successful refresh,
-    // but NOT automatically otherwise - it can persist until one of those happens.
-    error: string | null;
+    // Reflects only the initial load (or a refresh() re-running it) - never a mutation failure. A
+    // mutation's failure rejects to whichever caller triggered it instead; each caller (CartItemRow,
+    // VariantSelector) catches it and displays its own message locally, since only the caller knows
+    // which row/control the failure belongs to. Cleared on a successful load/refresh, otherwise persists.
+    loadError: string | null;
     addItem: (productVariantId: number, quantity: number) => Promise<void>;
     updateQuantity: (itemId: number, quantity: number) => Promise<void>;
     removeItem: (itemId: number) => Promise<void>;
@@ -48,7 +47,7 @@ export function CartProvider({children}: { children: ReactNode }) {
     const [cart, setCart] = useState<Cart>(EMPTY_CART);
     const [isLoading, setIsLoading] = useState(true);
     const [isMutating, setIsMutating] = useState(false);
-    const [error, setError] = useState<string | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
     // A ref, not just the isMutating state: state updates are batched/asynchronous, so a second call
     // fired in the same tick as the first could still read a stale `false`. The ref mutates immediately,
     // making it the correct guard for same-tick re-entrancy; isMutating (state) stays purely for display.
@@ -70,9 +69,9 @@ export function CartProvider({children}: { children: ReactNode }) {
         setIsLoading(true);
         try {
             setCart(await getCart());
-            setError(null);
+            setLoadError(null);
         } catch (err) {
-            setError(cartErrorMessage(err));
+            setLoadError(cartErrorMessage(err));
         } finally {
             setIsLoading(false);
         }
@@ -95,13 +94,14 @@ export function CartProvider({children}: { children: ReactNode }) {
         }
         isMutatingRef.current = true;
         setIsMutating(true);
-        setError(null);
         try {
             const updated = await mutate();
             setCart(updated);
             syncChannelRef.current?.postMessage(updated);
         } catch (err) {
-            setError(cartErrorMessage(err));
+            // Rethrown, not stored here: a mutation failure belongs to whichever row/control triggered
+            // it, not to the shared (load-only) state - the caller catches this and displays its own
+            // message locally (see CartItemRow/VariantSelector).
             throw err;
         } finally {
             isMutatingRef.current = false;
@@ -124,7 +124,7 @@ export function CartProvider({children}: { children: ReactNode }) {
 
     return (
         <CartContext.Provider
-            value={{cart, isLoading, isMutating, error, addItem, updateQuantity, removeItem, refresh}}
+            value={{cart, isLoading, isMutating, loadError, addItem, updateQuantity, removeItem, refresh}}
         >
             {children}
         </CartContext.Provider>
