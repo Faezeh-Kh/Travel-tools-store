@@ -3,37 +3,14 @@
 import {useState} from "react";
 import Link from "next/link";
 import {useCart} from "@/components/cart/CartProvider";
-import {CartError} from "@/lib/api/cart";
+import {cartErrorMessage} from "@/lib/cartErrorMessages";
 import {formatPrice} from "@/lib/format";
+import {TrashIcon} from "@/components/icons/TrashIcon";
+import {ErrorAlert} from "@/components/ErrorAlert";
 import type {CartItem} from "@/lib/api/types";
-
-function errorMessage(err: unknown): string {
-    return err instanceof CartError ? err.message : "خطایی رخ داد.";
-}
 
 const STEPPER_BUTTON_CLASS_NAME =
     "flex size-7 items-center justify-center rounded border border-zinc-300 hover:bg-zinc-100 disabled:opacity-40 dark:border-zinc-700 dark:hover:bg-zinc-800";
-
-function CartItemDetails({item}: {item: CartItem}) {
-    const attributeEntries = Object.entries(item.attributes);
-
-    return (
-        <div className="flex items-start justify-between gap-4">
-            <div>
-                <p className="font-semibold">{item.productName}</p>
-                {attributeEntries.length > 0 && (
-                    <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                        {attributeEntries.map(([key, value]) => `${key}: ${value}`).join("، ")}
-                    </p>
-                )}
-            </div>
-            <div className="whitespace-nowrap text-end">
-                <p className="font-medium">{formatPrice(item.totalPrice)}</p>
-                <p className="text-sm text-zinc-500 dark:text-zinc-400">{formatPrice(item.unitPrice)} / عدد</p>
-            </div>
-        </div>
-    );
-}
 
 function QuantityStepper({
     productName,
@@ -50,24 +27,24 @@ function QuantityStepper({
         <div className="flex items-center gap-2">
             <button
                 type="button"
-                aria-label={`کاهش تعداد ${productName}`}
-                disabled={disabled || quantity <= 1}
-                onClick={() => onChange(quantity - 1)}
-                className={STEPPER_BUTTON_CLASS_NAME}
-            >
-                −
-            </button>
-            <span aria-live="polite" className="min-w-6 text-center">
-                {quantity.toLocaleString("fa-IR")}
-            </span>
-            <button
-                type="button"
                 aria-label={`افزایش تعداد ${productName}`}
                 disabled={disabled}
                 onClick={() => onChange(quantity + 1)}
                 className={STEPPER_BUTTON_CLASS_NAME}
             >
                 +
+            </button>
+            <span aria-live="polite" className="min-w-6 text-center">
+                {quantity.toLocaleString("fa-IR")}
+            </span>
+            <button
+                type="button"
+                aria-label={`کاهش تعداد ${productName}`}
+                disabled={disabled || quantity <= 1}
+                onClick={() => onChange(quantity - 1)}
+                className={STEPPER_BUTTON_CLASS_NAME}
+            >
+                −
             </button>
         </div>
     );
@@ -85,6 +62,7 @@ function CartItemRow({
     onRemove: (itemId: number) => Promise<void>;
 }) {
     const [rowError, setRowError] = useState<string | null>(null);
+    const attributeEntries = Object.entries(item.attributes);
 
     // Runs a cart mutation for this row and shows any failure next to the row instead of page-wide.
     async function runRowAction(action: () => Promise<void>) {
@@ -92,34 +70,48 @@ function CartItemRow({
         try {
             await action();
         } catch (err) {
-            setRowError(errorMessage(err));
+            setRowError(cartErrorMessage(err));
         }
     }
 
     return (
         <li className="flex flex-col gap-2 border-b border-zinc-200 py-4 dark:border-zinc-800">
-            <CartItemDetails item={item} />
-            <div className="flex items-center gap-4">
-                <QuantityStepper
-                    productName={item.productName}
-                    quantity={item.quantity}
-                    disabled={disabled}
-                    onChange={(quantity) => void runRowAction(() => onUpdateQuantity(item.id, quantity))}
-                />
-                <button
-                    type="button"
-                    disabled={disabled}
-                    onClick={() => void runRowAction(() => onRemove(item.id))}
-                    className="rounded text-sm text-zinc-500 hover:text-accent disabled:opacity-40"
-                >
-                    حذف
-                </button>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <p className="font-semibold">{item.productName}</p>
+                    {attributeEntries.length > 0 && (
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                            {attributeEntries.map(([key, value]) => `${key}: ${value}`).join("، ")}
+                        </p>
+                    )}
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                    <div className="whitespace-nowrap text-end">
+                        <p className="font-medium">{formatPrice(item.totalPrice)}</p>
+                        <p className="text-sm text-zinc-500 dark:text-zinc-400">
+                            قیمت واحد: {formatPrice(item.unitPrice)}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <QuantityStepper
+                            productName={item.productName}
+                            quantity={item.quantity}
+                            disabled={disabled}
+                            onChange={(quantity) => void runRowAction(() => onUpdateQuantity(item.id, quantity))}
+                        />
+                        <button
+                            type="button"
+                            aria-label={`حذف ${item.productName}`}
+                            disabled={disabled}
+                            onClick={() => void runRowAction(() => onRemove(item.id))}
+                            className="rounded p-1 text-zinc-500 hover:text-accent disabled:opacity-40"
+                        >
+                            <TrashIcon className="size-5" />
+                        </button>
+                    </div>
+                </div>
             </div>
-            {rowError && (
-                <p role="alert" className="text-sm text-red-600 dark:text-red-400">
-                    {rowError}
-                </p>
-            )}
+            {rowError && <ErrorAlert onDismiss={() => setRowError(null)}>{rowError}</ErrorAlert>}
         </li>
     );
 }
@@ -153,11 +145,14 @@ function EmptyCart() {
     );
 }
 
-function CartTotal({totalPrice}: {totalPrice: number}) {
+function CartSummary({totalPrice}: {totalPrice: number}) {
     return (
-        <div className="flex items-center justify-between border-t border-zinc-200 pt-4 font-semibold dark:border-zinc-800">
-            <span>جمع کل</span>
-            <span>{formatPrice(totalPrice)}</span>
+        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50 p-5 sm:sticky sm:top-24 dark:bg-zinc-900">
+            <h2 className="font-semibold">جزئیات پرداخت</h2>
+            <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
+                <span className="text-zinc-600 dark:text-zinc-400">جمع کل</span>
+                <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
+            </div>
         </div>
     );
 }
@@ -182,8 +177,8 @@ export function CartPageContent() {
     }
 
     return (
-        <div className="flex flex-col gap-4">
-            <ul className="flex flex-col">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_18rem]">
+            <ul className="flex min-w-0 flex-col">
                 {cart.items.map((item) => (
                     <CartItemRow
                         key={item.id}
@@ -194,7 +189,7 @@ export function CartPageContent() {
                     />
                 ))}
             </ul>
-            <CartTotal totalPrice={cart.totalPrice} />
+            <CartSummary totalPrice={cart.totalPrice} />
         </div>
     );
 }

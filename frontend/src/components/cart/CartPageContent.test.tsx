@@ -109,18 +109,20 @@ describe("CartPageContent", () => {
     });
 
     it("shows the error and a retry button when the initial load fails, and retry recovers", async () => {
-        getCart.mockRejectedValueOnce(new CartError("SERVER_ERROR", "خطا در دریافت سبد خرید."));
+        // An unmapped code exercises the generic fallback, which is what a real server/network
+        // failure (nothing cart-specific) would hit.
+        getCart.mockRejectedValueOnce(new CartError("INTERNAL_ERROR", "Unexpected server error."));
         getCart.mockResolvedValueOnce(cartWithItems());
 
         renderPage();
 
-        expect(await screen.findByText("خطا در دریافت سبد خرید.")).toBeInTheDocument();
+        expect(await screen.findByText("خطایی رخ داد.")).toBeInTheDocument();
         const retryButton = screen.getByRole("button", {name: "تلاش دوباره"});
 
         fireEvent.click(retryButton);
 
         expect(await screen.findByText("چادر کوهنوردی ۳ نفره")).toBeInTheDocument();
-        expect(screen.queryByText("خطا در دریافت سبد خرید.")).not.toBeInTheDocument();
+        expect(screen.queryByText("خطایی رخ داد.")).not.toBeInTheDocument();
     });
 
     it("shows the empty-cart state with a link to /products when there are no items and no error", async () => {
@@ -161,7 +163,7 @@ describe("CartPageContent", () => {
         renderPage();
         const chairRow = (await screen.findByText("صندلی تاشو کمپینگ")).closest("li") as HTMLElement;
 
-        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف"}));
+        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف صندلی تاشو کمپینگ"}));
 
         await waitFor(() => expect(removeCartItem).toHaveBeenCalledWith(2));
         await waitFor(() => expect(screen.queryByText("صندلی تاشو کمپینگ")).not.toBeInTheDocument());
@@ -177,12 +179,12 @@ describe("CartPageContent", () => {
         renderPage();
         const chairRow = (await screen.findByText("صندلی تاشو کمپینگ")).closest("li") as HTMLElement;
 
-        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف"}));
+        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف صندلی تاشو کمپینگ"}));
         expect(await within(chairRow).findByRole("alert")).toHaveTextContent("خطایی رخ داد.");
         expect(screen.getByText("صندلی تاشو کمپینگ")).toBeInTheDocument();
 
         removeCartItem.mockResolvedValueOnce(cartWithoutChair());
-        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف"}));
+        fireEvent.click(within(chairRow).getByRole("button", {name: "حذف صندلی تاشو کمپینگ"}));
         await waitFor(() => expect(screen.queryByText("صندلی تاشو کمپینگ")).not.toBeInTheDocument());
     });
 
@@ -199,18 +201,20 @@ describe("CartPageContent", () => {
         fireEvent.click(within(tentRow).getByRole("button", {name: "افزایش تعداد چادر کوهنوردی ۳ نفره"}));
 
         await waitFor(() =>
-            expect(within(chairRow).getByRole("button", {name: "حذف"})).toBeDisabled(),
+            expect(within(chairRow).getByRole("button", {name: "حذف صندلی تاشو کمپینگ"})).toBeDisabled(),
         );
-        expect(within(tentRow).getByRole("button", {name: "حذف"})).toBeDisabled();
+        expect(within(tentRow).getByRole("button", {name: "حذف چادر کوهنوردی ۳ نفره"})).toBeDisabled();
 
         pending.resolve(cartWithItems());
-        await waitFor(() => expect(within(chairRow).getByRole("button", {name: "حذف"})).not.toBeDisabled());
+        await waitFor(() =>
+            expect(within(chairRow).getByRole("button", {name: "حذف صندلی تاشو کمپینگ"})).not.toBeDisabled(),
+        );
     });
 
     it("shows a stock-conflict error attached to the row that caused it, and recovers on the next attempt", async () => {
         getCart.mockResolvedValue(cartWithItems());
         updateCartItemQuantity.mockRejectedValueOnce(
-            new CartError("CONFLICT", "Only 3 unit(s) of چادر کوهنوردی ۳ نفره are available."),
+            new CartError("CONFLICT", "Only 3 unit(s) of TENT-3P-GRN are available."),
         );
 
         renderPage();
@@ -221,12 +225,11 @@ describe("CartPageContent", () => {
         const increment = within(tentRow).getByRole("button", {name: "افزایش تعداد چادر کوهنوردی ۳ نفره"});
         fireEvent.click(increment);
 
-        expect(
-            await within(tentRow).findByRole("alert"),
-        ).toHaveTextContent("Only 3 unit(s) of چادر کوهنوردی ۳ نفره are available.");
+        // The CONFLICT code maps to a fixed Persian message, regardless of the backend's own wording.
+        expect(await within(tentRow).findByRole("alert")).toHaveTextContent("موجودی این محصول کافی نیست.");
         // The rejected change was never applied: quantity stays at its pre-attempt value.
         expect(within(tentRow).getByText("۳")).toBeInTheDocument();
-        expect(within(chairRow).queryByText(/available/)).not.toBeInTheDocument();
+        expect(within(chairRow).queryByRole("alert")).not.toBeInTheDocument();
 
         // The global mutation lock released after the failure, so a retry can still succeed.
         expect(increment).not.toBeDisabled();
@@ -235,5 +238,24 @@ describe("CartPageContent", () => {
 
         await waitFor(() => expect(within(tentRow).getByText("۴")).toBeInTheDocument());
         expect(within(tentRow).queryByRole("alert")).not.toBeInTheDocument();
+    });
+
+    it("lets the shopper dismiss a row error without waiting for another attempt", async () => {
+        getCart.mockResolvedValue(cartWithItems());
+        updateCartItemQuantity.mockRejectedValueOnce(
+            new CartError("CONFLICT", "Only 3 unit(s) of TENT-3P-GRN are available."),
+        );
+
+        renderPage();
+        await screen.findByText("چادر کوهنوردی ۳ نفره");
+        const tentRow = screen.getByText("چادر کوهنوردی ۳ نفره").closest("li") as HTMLElement;
+        fireEvent.click(within(tentRow).getByRole("button", {name: "افزایش تعداد چادر کوهنوردی ۳ نفره"}));
+        await within(tentRow).findByRole("alert");
+
+        fireEvent.click(within(tentRow).getByRole("button", {name: "بستن پیام خطا"}));
+
+        expect(within(tentRow).queryByRole("alert")).not.toBeInTheDocument();
+        // Quantity is untouched either way - dismissing the message isn't a retry.
+        expect(within(tentRow).getByText("۳")).toBeInTheDocument();
     });
 });
