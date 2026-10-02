@@ -33,7 +33,7 @@ bundle. Set both variables to the same value if you override the default.
 | --- | --- |
 | `/` | Home: hero banner, category grid, featured products, trust section. |
 | `/products` | Product catalog with a category/in-stock filter sidebar (a filter drawer below the `lg` breakpoint), a sort toolbar, and pagination, driven by the `search`, `category`, `inStock`, `sort`, and `page` query parameters. Search terms are entered in the site-wide header. |
-| `/products/[slug]` | Product detail: image, info, variant selection with live price/stock. |
+| `/products/[slug]` | Product detail: image, info, variant selection (no choice shown for a single-variant product) with cart-aware stock and add to cart, plus a full-width description/specifications section below (side by side at desktop). |
 | `/categories/[slug]` | Category detail (name/description) with a paginated list of that category's products and a link to filter them in the full catalog. |
 | `/contact` | Static contact page: shop address with an embedded OpenStreetMap map and a Neshan directions link, opening hours, and phone/email/Telegram cards. Details live in one `CONTACT` constant in `page.tsx`. |
 | `/cart` | Cart: item list with quantity steppers and removal, a header badge kept in sync via shared `CartProvider` state. No checkout yet — that's Phase 6. |
@@ -78,7 +78,8 @@ component:
 - `src/components/home/home-sections.test.tsx` — section-level rendering (populated/empty states), exercising real
   card children rather than mocking them.
 - `src/components/image-fallback.test.tsx` — the image/placeholder/`onError` pattern described above.
-- Components with real conditional or interactive logic: `VariantSelector`, the hero slideshow (`HeroBanner`), the
+- Components with real conditional or interactive logic: `VariantSelector`, `ProductInfo` (including the no-variants
+  fallback `VariantSelector` itself can't safely render), `ProductDetailsPanel`, the hero slideshow (`HeroBanner`), the
   header search (`Header`, `ProductSearchForm`), and the catalog controls (`ProductFilters`, `ProductSortSelect`,
   `ProductFilterDrawer`, `Pagination`) — including that each control preserves the rest of the URL state.
 - `src/app/contact/page.test.tsx` — the contact page's links, map embed, and opening hours (a synchronous Server

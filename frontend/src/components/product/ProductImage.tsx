@@ -8,7 +8,7 @@ export function ProductImage({images, name}: {images: string[]; name: string}) {
     const [imageFailed, setImageFailed] = useState(false);
 
     return (
-        <div className="relative aspect-square w-full overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900">
+        <div className="relative aspect-[4/3] w-full overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900">
             {primaryImage && !imageFailed ? (
                 <Image
                     src={primaryImage}
