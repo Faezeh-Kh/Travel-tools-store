@@ -39,11 +39,14 @@ function cartWithOneItem(quantity = 1): Cart {
                 id: 1,
                 productVariantId: 10,
                 productName: "چادر کوهنوردی ۳ نفره",
+                productSlug: "tent-3-person-mountaineering",
+                primaryImage: null,
                 sku: "TENT-3P-GRN",
                 attributes: {},
                 unitPrice: 4850000,
                 quantity,
                 totalPrice: 4850000 * quantity,
+                stockQuantity: 20,
             },
         ],
         subtotal: 4850000 * quantity,
@@ -201,6 +204,24 @@ describe("CartProvider", () => {
         addDeferred.resolve(cartWithOneItem());
         await first;
         await waitFor(() => expect(screen.getByTestId("count")).toHaveTextContent("1"));
+    });
+
+    it("propagates a mutation made in one CartProvider instance to another, without the second calling the API", async () => {
+        // Two instances simulate two tabs: each is its own independent React tree, so this is only a
+        // real test of the cross-tab sync (BroadcastChannel) if nothing else connects them.
+        getCart.mockResolvedValue(emptyCart());
+        updateCartItemQuantity.mockResolvedValue(cartWithOneItem(3));
+
+        const tabA = renderCart();
+        const tabB = renderCart();
+        await waitFor(() => expect(tabA.getContext().isLoading).toBe(false));
+        await waitFor(() => expect(tabB.getContext().isLoading).toBe(false));
+
+        await tabA.getContext().updateQuantity(1, 3);
+
+        await waitFor(() => expect(tabB.getContext().cart.items).toHaveLength(1));
+        expect(tabB.getContext().cart.items[0].quantity).toBe(3);
+        expect(updateCartItemQuantity).toHaveBeenCalledTimes(1);
     });
 
     it("throws when used outside a CartProvider", () => {

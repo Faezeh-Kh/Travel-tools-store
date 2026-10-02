@@ -7,6 +7,12 @@ import type {Cart} from "@/lib/api/types";
 
 const EMPTY_CART: Cart = {id: null, items: [], subtotal: 0, totalPrice: 0};
 
+// Same-origin, cross-tab sync: each tab's CartProvider only holds its own React state, so without this
+// a mutation in one tab (e.g. the cart page) never reaches another tab's (e.g. a product page) already-
+// rendered stock display until that tab re-fetches on its own. BroadcastChannel never delivers a
+// message back to its own sender, so the tab that mutated doesn't need to guard against its own echo.
+const CART_SYNC_CHANNEL = "cart-sync";
+
 // Thrown when a mutation is attempted while another one is still in flight, instead of silently
 // resolving - a caller awaiting addItem()/etc. must see this as a rejection, not a success. Reuses
 // CartError (same shape every other cart failure already has) rather than a new error type, so
@@ -47,6 +53,18 @@ export function CartProvider({children}: { children: ReactNode }) {
     // fired in the same tick as the first could still read a stale `false`. The ref mutates immediately,
     // making it the correct guard for same-tick re-entrancy; isMutating (state) stays purely for display.
     const isMutatingRef = useRef(false);
+    const syncChannelRef = useRef<BroadcastChannel | null>(null);
+
+    useEffect(() => {
+        if (typeof BroadcastChannel === "undefined") return;
+        const channel = new BroadcastChannel(CART_SYNC_CHANNEL);
+        channel.onmessage = (event: MessageEvent<Cart>) => setCart(event.data);
+        syncChannelRef.current = channel;
+        return () => {
+            channel.close();
+            syncChannelRef.current = null;
+        };
+    }, []);
 
     const loadCart = useCallback(async () => {
         setIsLoading(true);
@@ -79,7 +97,9 @@ export function CartProvider({children}: { children: ReactNode }) {
         setIsMutating(true);
         setError(null);
         try {
-            setCart(await mutate());
+            const updated = await mutate();
+            setCart(updated);
+            syncChannelRef.current?.postMessage(updated);
         } catch (err) {
             setError(cartErrorMessage(err));
             throw err;
