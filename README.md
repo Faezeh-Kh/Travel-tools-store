@@ -60,6 +60,42 @@ cd backend/travelTools
 
 Schema is managed exclusively by Flyway migrations under `src/main/resources/db/migration`.
 
+### Development catalog data
+
+Until admin product management exists, local catalog data comes from the product sheet
+`scripts/seed/products_seed.xlsx` and its CSV export `scripts/seed/products_seed.csv`. Run the backend with the `dev`
+profile to load it:
+
+```bash
+./mvnw spring-boot:run -Dspring-boot.run.profiles=dev
+```
+
+The `dev` profile adds `src/main/resources/db/seed/R__dev_catalog_seed.sql` to the Flyway locations. It is a
+repeatable migration: Flyway re-applies it whenever its content changes, and it upserts by product slug and variant
+SKU, deactivating products and variants that are no longer in the sheet (including the V2 sample products). Without
+the profile, no seed runs, so production and tests never see this data.
+
+The SQL file is generated; regenerate it after changing the sheet instead of editing it by hand. From the repository
+root, with Python 3 (standard library only):
+
+```bash
+python scripts/seed/generate_catalog_seed.py scripts/seed/products_seed.csv
+python -m unittest discover scripts/seed   # generator tests
+```
+
+Sheet rules, which the script checks and reports by row number:
+
+- Export the sheet as **CSV UTF-8**. Columns: `نام محصول`, `Slug`, `SKU`, `دسته‌بندی`, `توصیف کوتاه`, `مشخصات`,
+  `قیمت واحد`, `تعداد موجودی`.
+- Each row is one variant. Rows sharing a slug are one product and must share name, category, short description, and
+  specification names. Specifications whose values differ between those rows become the variants' attributes.
+- `مشخصات` format: `name: value; name: value1، value2;`. Multiple values are separated by `,` or `،`.
+- Category must be one of the existing category names. Slugs are lowercase kebab-case and SKUs uppercase; treat both
+  as permanent, because changing one creates a new product or variant and deactivates the old one.
+- Product images live in `frontend/public/images/products/`, named after a variant's SKU: `<SKU>.webp` for one photo,
+  `<SKU>.1.webp`, `<SKU>.2.webp`, ... for several (WebP, at most 1200px wide, to keep the repository and pages light). A product shows the photos of all its variants. The script lists
+  image files that match no SKU.
+
 ### Backend tests
 
 ```bash

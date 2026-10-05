@@ -35,3 +35,9 @@ build/
 
 ### Environment ###
 .env
+
+### Python ###
+__pycache__/
+
+### Office lock files ###
+~$*
