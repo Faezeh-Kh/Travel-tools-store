@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import {getProductBySlug} from "@/lib/api/products";
-import {ProductImage} from "@/components/product/ProductImage";
+import {ProductGallery} from "@/components/product/ProductGallery";
 import {ProductInfo} from "@/components/product/ProductInfo";
 import {ProductDetailsPanel} from "@/components/product/ProductDetailsPanel";
 
@@ -24,7 +24,7 @@ export default async function ProductDetailPage({params}: PageProps<"/products/[
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
                     {/* Keyed by slug so moving to another product resets the selected photo instead of
                         carrying the previous product's selection over. */}
-                    <ProductImage key={product.slug} images={product.images} name={product.name} />
+                    <ProductGallery key={product.slug} images={product.images} name={product.name} />
                     <ProductInfo product={product} />
                 </div>
                 <ProductDetailsPanel description={product.description} specifications={product.specifications} />
