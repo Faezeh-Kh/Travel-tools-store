@@ -46,7 +46,7 @@ describe("VariantSelector", () => {
 
         expect(screen.getByRole("radio", {name: /رنگ: سبز/})).toBeChecked();
         // The selected variant's price appears twice: once in the summary, once in its own option row.
-        expect(screen.getAllByText("۴٬۸۵۰٬۰۰۰ ریال")).toHaveLength(2);
+        expect(screen.getAllByText("۴٬۸۵۰٬۰۰۰ تومان")).toHaveLength(2);
         expect(screen.getByText("۱۲ عدد موجود")).toBeInTheDocument();
     });
 
@@ -58,9 +58,9 @@ describe("VariantSelector", () => {
         expect(screen.getByRole("radio", {name: /رنگ: نارنجی/})).toBeChecked();
         expect(screen.getByRole("radio", {name: /رنگ: سبز/})).not.toBeChecked();
         // The newly selected variant's price now appears twice (summary + its own option row)...
-        expect(screen.getAllByText("۵٬۲۰۰٬۰۰۰ ریال")).toHaveLength(2);
+        expect(screen.getAllByText("۵٬۲۰۰٬۰۰۰ تومان")).toHaveLength(2);
         // ...while the no-longer-selected variant's price appears only once (its own option row).
-        expect(screen.getAllByText("۴٬۸۵۰٬۰۰۰ ریال")).toHaveLength(1);
+        expect(screen.getAllByText("۴٬۸۵۰٬۰۰۰ تومان")).toHaveLength(1);
     });
 
     it("shows 'ناموجود' for a zero-stock variant", () => {
@@ -101,7 +101,7 @@ describe("VariantSelector", () => {
 
         expect(screen.queryByRole("radio")).not.toBeInTheDocument();
         // The price appears once, in the summary, rather than again in an option row.
-        expect(screen.getAllByText("۹۵۰٬۰۰۰ ریال")).toHaveLength(1);
+        expect(screen.getAllByText("۹۵۰٬۰۰۰ تومان")).toHaveLength(1);
         expect(screen.getByText("۲۵ عدد موجود")).toBeInTheDocument();
     });
 

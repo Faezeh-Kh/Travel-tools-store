@@ -111,7 +111,7 @@ describe("CartPageContent", () => {
         expect(await screen.findByText("چادر کوهنوردی ۳ نفره")).toBeInTheDocument();
         expect(screen.getByText("رنگ: سبز")).toBeInTheDocument();
         expect(screen.getByText("جمع کل")).toBeInTheDocument();
-        expect(screen.getByText(`${(15500000).toLocaleString("fa-IR")} ریال`)).toBeInTheDocument();
+        expect(screen.getByText(`${(15500000).toLocaleString("fa-IR")} تومان`)).toBeInTheDocument();
     });
 
     it("links the product thumbnail and name to the product detail page", async () => {

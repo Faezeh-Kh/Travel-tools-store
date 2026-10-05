@@ -1,5 +1,6 @@
+// Prices from the API are already in Toman (see PROJECT.md), so they are only labelled, never converted.
 export function formatPrice(value: number): string {
-    return `${value.toLocaleString("fa-IR")} ریال`;
+    return `${value.toLocaleString("fa-IR")} تومان`;
 }
 
 export function formatPriceRange(minPrice: number | null, maxPrice: number | null): string {

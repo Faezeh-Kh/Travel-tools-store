@@ -37,7 +37,8 @@ purchase total. Address fields may be grouped into a value object. Select anonym
 during the cart phase; no customer account is required.
 
 Price and stock belong exclusively to variants. Products without options have one default variant; purchasing requires
-an active variant available for sale. Product/category slugs and variant SKUs are unique. Money uses decimal values.
+an active variant available for sale. Product/category slugs and variant SKUs are unique. Money uses decimal values;
+all amounts are in Toman (تومان), stored and displayed without conversion.
 
 Categories are database-managed. Initial categories: Camping & Shelter, Camping Furniture, Cooking & Food, Lighting &
 Power, Travel Accessories.
