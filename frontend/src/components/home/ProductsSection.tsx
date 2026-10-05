@@ -11,7 +11,9 @@ export function ProductsSection({products}: {products: ProductSummary[]}) {
                     <p className="text-zinc-500">در حال حاضر محصولی برای نمایش وجود ندارد.</p>
                 ) : (
                     <>
-                        <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6">
+                        {/* No 5-column step: the home page shows 12 products (see FEATURED_PRODUCT_COUNT), and
+                            12 only fills rows of 2, 3, 4 or 6. */}
+                        <ul className="grid list-none grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
                             {products.map((product) => (
                                 <li key={product.id}>
                                     <ProductCard product={product} />

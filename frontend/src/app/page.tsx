@@ -5,7 +5,9 @@ import {CategoriesSection} from "@/components/home/CategoriesSection";
 import {ProductsSection} from "@/components/home/ProductsSection";
 import {TrustSection} from "@/components/home/TrustSection";
 
-const FEATURED_PRODUCT_COUNT = 8;
+// Divisible by every column count of the ProductsSection grid (2, 3, 4, 6), so each row is full at
+// every breakpoint. Change both together.
+const FEATURED_PRODUCT_COUNT = 12;
 
 export default async function Home() {
     const [categories, {items: featuredProducts}] = await Promise.all([

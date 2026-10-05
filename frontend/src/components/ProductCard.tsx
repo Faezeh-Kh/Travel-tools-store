@@ -12,7 +12,7 @@ export function ProductCard({product}: {product: ProductSummary}) {
     return (
         <Link
             href={`/products/${product.slug}`}
-            className="flex flex-col gap-2 rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:border-zinc-800 dark:hover:border-zinc-600"
+            className="flex h-full flex-col gap-2 rounded-lg border border-zinc-200 p-4 transition-colors hover:border-zinc-400 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent dark:border-zinc-800 dark:hover:border-zinc-600"
         >
             {product.primaryImage && !imageFailed ? (
                 <div className="relative aspect-square w-full overflow-hidden rounded-md bg-zinc-100 dark:bg-zinc-900">
@@ -34,9 +34,12 @@ export function ProductCard({product}: {product: ProductSummary}) {
                     بدون تصویر
                 </div>
             )}
-            <h2 className="font-semibold">{product.name}</h2>
-            <p className="line-clamp-2 text-sm text-zinc-600 dark:text-zinc-400">{product.shortDescription}</p>
-            <p className="line-clamp-2 min-h-12 font-medium">
+            {/* Line limits (title 2, description 1) keep cards compact; h-full makes every card in a grid row
+                equally tall, and mt-auto pins the price to the bottom. text-end puts it in the bottom-left corner in
+                RTL (bottom-right in LTR). */}
+            <h2 className="line-clamp-2 font-semibold">{product.name}</h2>
+            <p className="line-clamp-1 text-sm text-zinc-600 dark:text-zinc-400">{product.shortDescription}</p>
+            <p className="mt-auto line-clamp-2 text-end font-medium">
                 {formatPriceRange(product.minPrice, product.maxPrice)}
             </p>
         </Link>
