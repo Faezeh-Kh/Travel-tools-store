@@ -28,7 +28,7 @@ defines engineering and verification rules.
 | Cart           | id, items, createdAt, updatedAt; calculated subtotal, totalPrice                                                                                |
 | CartItem       | id, cart, productVariant, quantity; calculated unitPrice, totalPrice                                                                            |
 | Order          | id, orderNumber, status, items, firstName, lastName, phoneNumber, address, city, postalCode, notes (optional), totalPrice, createdAt, updatedAt |
-| OrderItem      | id, order, productId, productVariantId, productName, variantDescription, sku, quantity, unitPrice, totalPrice                                   |
+| OrderItem      | id, order, productId, productVariantId, productName, variantDescription, productImage (optional), sku, quantity, unitPrice, totalPrice         |
 
 These are domain attributes, not a mandatory database-column layout. Each Cart owns its CartItems; each Order owns its
 OrderItems. Cart prices/totals are calculated from current variant prices, not stored as authoritative values. OrderItem
@@ -61,12 +61,18 @@ the cart shows; the cart's own stock check is advisory only. Keep order creation
 no payment-provider infrastructure now.
 
 **Orders:** Assign unique human-readable numbers. Snapshot productId, productVariantId, productName, variantDescription,
-sku, quantity, unitPrice, totalPrice; subsequent catalog changes cannot alter purchases. Statuses: PENDING, CONFIRMED,
-SHIPPED, DELIVERED, CANCELLED.
+sku, quantity, unitPrice, totalPrice, and the product's primary image; subsequent catalog changes cannot alter
+purchases. Statuses: PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED.
 
 **Administration:** Authenticated, authorized admins create/edit/deactivate products, variants, and categories; update
 variant prices/stock; view orders and change status. Customer browsing is anonymous; defer registration while allowing
 future accounts.
+
+**Retention:** Orders are never deleted; an order that will not proceed is CANCELLED. Products and variants referenced
+by orders or carts, and categories that have products, are deactivated, never physically deleted (foreign keys reject
+such deletes). Retained rows cost little storage at this catalog size. Decision point for Phase 8: if abandoned carts or
+inactive catalog rows accumulate, add a scheduled cleanup that deletes carts older than an agreed age, then inactive
+products/variants no longer referenced; orders are never purged.
 
 ## Storefront and documentation
 
