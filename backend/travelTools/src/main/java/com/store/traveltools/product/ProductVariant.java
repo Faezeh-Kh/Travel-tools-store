@@ -70,6 +70,19 @@ public class ProductVariant {
         this.active = active;
     }
 
+    // Called by checkout, which has already locked this row and checked stock (throwing a 409 when it is
+    // short); this guard keeps the invariant even if a caller skips that check.
+    public void decreaseStock(int quantity) {
+        if (quantity < 1) {
+            throw new IllegalArgumentException("Quantity must be positive: " + quantity);
+        }
+        if (quantity > stockQuantity) {
+            throw new IllegalArgumentException(
+                    "Cannot remove %d unit(s) of %s; only %d in stock.".formatted(quantity, sku, stockQuantity));
+        }
+        stockQuantity -= quantity;
+    }
+
     public Long getId() {
         return id;
     }
