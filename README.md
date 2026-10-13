@@ -2,7 +2,8 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phases 1–5 (Foundation through Cart) are functionally complete; Phase 6 (Checkout/orders) is next.
+**Status:** Phases 1–5 (Foundation through Cart) are functionally complete; Phase 6 (Checkout/orders) is in progress:
+the backend order API is implemented, the checkout and confirmation pages are not yet.
 
 - **Storefront and discovery:** home, catalog, product/category detail pages with a photo gallery and variant
   selection, site-wide header/footer, and a static contact page — Persian/RTL throughout, prices in Toman. The catalog
@@ -10,9 +11,11 @@ A production-oriented travel/camping/outdoor store MVP for Persian-speaking cust
 - **Cart:** an anonymous, cookie-identified cart with add/update/remove, server-calculated totals, and advisory stock
   checks. Concurrent mutations of the same cart are serialized with a pessimistic lock. The frontend shows a header
   badge, a cart page, and add-to-cart on product pages, kept in sync across browser tabs.
+- **Checkout/orders (backend):** placing an order from the cart with authoritative stock checks (locked variant rows),
+  stock reduction, purchase-time item snapshots, `TT-` order numbers, and a confirmation lookup by a secret access token.
 - **Development data:** a dev-only catalog seed generated from a product sheet (see below).
 
-Checkout/orders (Phase 6), administration with authentication (Phase 7), and hardening (Phase 8) are not started.
+The checkout frontend (Phase 6), administration with authentication (Phase 7), and hardening (Phase 8) are not started.
 Until Phase 7, there is no admin UI or authentication; catalog data comes from migrations and the dev seed.
 
 ## Architecture and stack
@@ -170,6 +173,8 @@ Endpoints implemented so far:
 | POST | `/api/cart/items` | Add `{productVariantId, quantity}`. Creates the cart on first use and sets the `cartId` cookie. Adding an existing variant increases its quantity. |
 | PATCH | `/api/cart/items/{itemId}` | Set an item's quantity: `{quantity}` (≥ 1). |
 | DELETE | `/api/cart/items/{itemId}` | Remove an item. |
+| POST | `/api/orders` | Place an order from the cart (`cartId` cookie) with the contact/delivery details below. 201 with the order and `Location: /api/orders/{accessToken}`. |
+| GET | `/api/orders/{accessToken}` | The order behind a confirmation link. 404 for an unknown or malformed token. |
 
 `GET /api/products` query parameters (all optional):
 
@@ -190,6 +195,29 @@ totals are always calculated on the server from current variant prices and never
 an unknown, inactive, or not-owned variant, cart, or item return 404. A quantity above the variant's current stock
 returns 409. This stock check is advisory feedback, not a reservation. Checkout must re-validate stock when it creates
 the order.
+
+**Order contract.** `POST /api/orders` takes `{firstName, lastName, phoneNumber, address, city, postalCode, notes}`:
+
+| Field | Rule |
+| --- | --- |
+| `firstName`, `lastName` | Required, max 100 characters. |
+| `phoneNumber` | Required Iranian mobile number: `09` followed by 9 digits. |
+| `address` | Required, max 500 characters. |
+| `city` | Required, max 100 characters. |
+| `postalCode` | Required, 10 digits. |
+| `notes` | Optional, max 1000 characters. |
+
+Surrounding whitespace is removed, and `phoneNumber`/`postalCode` also accept Persian or Arabic digits with spaces or
+hyphens between digit groups (normalized before validation). Checkout locks the cart and its variant rows, re-checks
+availability and stock, reduces stock, snapshots each item at its current price, and empties the cart (the cart and
+its cookie remain for the next purchase), all in one transaction. 404 when there is no cart; 409 (`CONFLICT`) when the
+cart is empty or an item is unavailable or short of stock - nothing is changed then. A repeated submit of the same
+cart finds it empty, so it can't create a second order.
+
+An order has two identifiers: the human-readable `orderNumber` (`TT-100001`, sequential, for display and support) and
+a random `accessToken`. Only the token can read an order's details (name, phone, address), because sequential numbers
+are guessable; the response that places the order is the only place the token is handed out. Order responses are sent
+with `Cache-Control: no-store`.
 
 Errors use a consistent JSON shape (`{timestamp, status, code, message, fieldErrors}`) for both application errors and
 framework-level ones (unmapped routes, wrong HTTP methods, malformed requests), via a global exception handler that hides

@@ -5,9 +5,13 @@
 CREATE SEQUENCE order_number_seq START WITH 100001;
 
 -- "orders", not "order": ORDER is a reserved SQL keyword.
+-- access_token is what grants access to an order's details (name, phone, address): a random UUID, also
+-- assigned by the database, that the customer gets in the confirmation link - like the cart id cookie, it
+-- can't be guessed, unlike the sequential order number.
 CREATE TABLE orders (
     id           BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     order_number VARCHAR(20) NOT NULL DEFAULT 'TT-' || nextval('order_number_seq'),
+    access_token UUID NOT NULL DEFAULT gen_random_uuid(),
     status       VARCHAR(20) NOT NULL,
     first_name   VARCHAR(100) NOT NULL,
     last_name    VARCHAR(100) NOT NULL,
@@ -20,6 +24,7 @@ CREATE TABLE orders (
     created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
     CONSTRAINT uq_orders_order_number UNIQUE (order_number),
+    CONSTRAINT uq_orders_access_token UNIQUE (access_token),
     CONSTRAINT chk_orders_status
         CHECK (status IN ('PENDING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'CANCELLED')),
     CONSTRAINT chk_orders_total_price_non_negative CHECK (total_price >= 0)

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.Generated;
@@ -37,6 +38,12 @@ public class Order {
     @Generated
     @Column(name = "order_number", nullable = false, unique = true, insertable = false, updatable = false)
     private String orderNumber;
+
+    // Also assigned by the database (gen_random_uuid(), see V6). Unlike the guessable order number, this is
+    // what grants access to the order's details, so it is only ever handed to the customer who placed it.
+    @Generated
+    @Column(name = "access_token", nullable = false, unique = true, insertable = false, updatable = false)
+    private UUID accessToken;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -102,6 +109,10 @@ public class Order {
 
     public String getOrderNumber() {
         return orderNumber;
+    }
+
+    public UUID getAccessToken() {
+        return accessToken;
     }
 
     public OrderStatus getStatus() {

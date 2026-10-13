@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.hibernate.Hibernate;
@@ -198,6 +199,52 @@ class OrderRepositoryTest extends AbstractIntegrationTest {
         assertThat(item.getUnitPrice()).isEqualByComparingTo("100.00");
         assertThat(item.getTotalPrice()).isEqualByComparingTo("200.00");
         assertThat(found.getTotalPrice()).isEqualByComparingTo("200.00");
+    }
+
+    @Test
+    void findByAccessToken_findsTheOrderWithItsItemsByTheTokenTheDatabaseAssigned() {
+        CatalogIds ids = createVariant("TEST-ORDER-TOKEN");
+        Order order = newOrder();
+        order.addItem(newItem(ids, "TEST-ORDER-TOKEN", 1, "100.00"));
+        Order saved = saveAndFlush(order);
+        UUID accessToken = saved.getAccessToken();
+        entityManager.clear();
+
+        Order found = orderRepository.findByAccessToken(accessToken).orElseThrow();
+
+        assertThat(accessToken).isNotNull();
+        assertThat(found.getOrderNumber()).isEqualTo(saved.getOrderNumber());
+        assertThat(Hibernate.isInitialized(found.getItems())).isTrue();
+        assertThat(found.getItems()).extracting(OrderItem::getSku).containsExactly("TEST-ORDER-TOKEN");
+    }
+
+    @Test
+    void findByAccessToken_returnsEmptyForUnknownToken() {
+        saveAndFlush(newOrder());
+
+        assertThat(orderRepository.findByAccessToken(UUID.randomUUID())).isEmpty();
+    }
+
+    @Test
+    void savingOrders_assignsEachADifferentAccessToken() {
+        UUID first = saveAndFlush(newOrder()).getAccessToken();
+        UUID second = saveAndFlush(newOrder()).getAccessToken();
+
+        assertThat(first).isNotNull().isNotEqualTo(second);
+    }
+
+    @Test
+    void savingDuplicateAccessToken_violatesUniqueConstraint() {
+        UUID existing = saveAndFlush(newOrder()).getAccessToken();
+
+        assertViolatesConstraint(() -> jdbcTemplate.update(
+                """
+                INSERT INTO orders (order_number, access_token, status, first_name, last_name, phone_number,
+                        address, city, postal_code, total_price)
+                VALUES ('TT-TEST-TOKEN', ?, 'PENDING', 'First', 'Last', '09120000000', 'Address', 'City',
+                        '1234567890', 0)
+                """,
+                existing), "uq_orders_access_token");
     }
 
     @Test

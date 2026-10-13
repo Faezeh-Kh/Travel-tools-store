@@ -1,6 +1,7 @@
 package com.store.traveltools.order;
 
 import java.util.Optional;
+import java.util.UUID;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.Repository;
@@ -16,4 +17,8 @@ public interface OrderRepository extends Repository<Order, Long> {
     // lazy query when the items are first read.
     @EntityGraph(attributePaths = "items")
     Optional<Order> findByOrderNumber(String orderNumber);
+
+    // The customer-facing lookup: only the random access token may expose an order's details publicly.
+    @EntityGraph(attributePaths = "items")
+    Optional<Order> findByAccessToken(UUID accessToken);
 }

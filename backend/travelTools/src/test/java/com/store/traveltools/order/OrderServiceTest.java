@@ -299,4 +299,28 @@ class OrderServiceTest {
         assertThat(OrderService.describeVariant(attributes)).isEqualTo("رنگ: سبز، سایز: L");
         assertThat(OrderService.describeVariant(Map.of())).isEmpty();
     }
+
+    @Test
+    void getOrder_returnsTheOrderWithItsItemsForAKnownAccessToken() {
+        UUID accessToken = UUID.randomUUID();
+        Order order = new Order("علی", "رضایی", "09121234567",
+                new DeliveryAddress("خیابان آزادی، پلاک ۱۰", "تهران", "1234567890"), null);
+        order.addItem(new OrderItem(10L, 1L, "چادر", "رنگ: سبز", null, "SKU-1", 2, new BigDecimal("150.00")));
+        given(orderRepository.findByAccessToken(accessToken)).willReturn(Optional.of(order));
+
+        OrderResponse response = orderService.getOrder(accessToken);
+
+        assertThat(response.firstName()).isEqualTo("علی");
+        assertThat(response.postalCode()).isEqualTo("1234567890");
+        assertThat(response.totalPrice()).isEqualByComparingTo("300.00");
+        assertThat(response.items()).extracting(OrderItemResponse::sku).containsExactly("SKU-1");
+    }
+
+    @Test
+    void getOrder_throwsNotFoundForAnUnknownAccessToken() {
+        UUID accessToken = UUID.randomUUID();
+        given(orderRepository.findByAccessToken(accessToken)).willReturn(Optional.empty());
+
+        assertThatThrownBy(() -> orderService.getOrder(accessToken)).isInstanceOf(NotFoundException.class);
+    }
 }

@@ -84,6 +84,14 @@ public class OrderService {
         return toResponse(saved);
     }
 
+    // The customer-facing read: an order's details (name, phone, address) are only reachable through its
+    // random access token, never through the guessable order number.
+    public OrderResponse getOrder(UUID accessToken) {
+        return orderRepository.findByAccessToken(accessToken)
+                .map(OrderService::toResponse)
+                .orElseThrow(() -> new NotFoundException("Order not found."));
+    }
+
     private Cart lockCart(UUID cartId) {
         if (cartId == null) {
             throw new NotFoundException("Cart not found.");
@@ -131,8 +139,9 @@ public class OrderService {
                         item.getTotalPrice()))
                 .toList();
         DeliveryAddress address = order.getDeliveryAddress();
-        return new OrderResponse(order.getOrderNumber(), order.getStatus(), order.getFirstName(),
-                order.getLastName(), order.getPhoneNumber(), address.getAddressLine(), address.getCity(),
-                address.getPostalCode(), order.getNotes(), items, order.getTotalPrice(), order.getCreatedAt());
+        return new OrderResponse(order.getOrderNumber(), order.getAccessToken(), order.getStatus(),
+                order.getFirstName(), order.getLastName(), order.getPhoneNumber(), address.getAddressLine(),
+                address.getCity(), address.getPostalCode(), order.getNotes(), items, order.getTotalPrice(),
+                order.getCreatedAt());
     }
 }

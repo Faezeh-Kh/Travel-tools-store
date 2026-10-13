@@ -70,7 +70,8 @@ Checkout does not lock product rows. Constraint for Phase 7: deactivating a prod
 variant rows (sorted by id), then update the product. It then waits for running checkouts of those variants, and a
 checkout that starts later blocks on the variant locks and reads the product's new state after them.
 
-**Orders:** Assign unique human-readable numbers. Snapshot productId, productVariantId, productName, variantDescription,
+**Orders:** Assign unique human-readable numbers. Order numbers are sequential and therefore guessable, so an
+order's details are only readable through a separate random access token (the customer's confirmation link). Snapshot productId, productVariantId, productName, variantDescription,
 sku, quantity, unitPrice, totalPrice, and the product's primary image; subsequent catalog changes cannot alter
 purchases. Statuses: PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED.
 
