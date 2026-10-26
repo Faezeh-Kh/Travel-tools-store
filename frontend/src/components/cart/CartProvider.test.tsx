@@ -225,6 +225,22 @@ describe("CartProvider", () => {
         expect(updateCartItemQuantity).toHaveBeenCalledTimes(1);
     });
 
+    it("propagates a refresh() made in one CartProvider instance to another, e.g. the cart emptied by checkout", async () => {
+        getCart.mockResolvedValue(cartWithOneItem());
+
+        const tabA = renderCart();
+        const tabB = renderCart();
+        await waitFor(() => expect(tabA.getContext().cart.items).toHaveLength(1));
+        await waitFor(() => expect(tabB.getContext().cart.items).toHaveLength(1));
+
+        getCart.mockResolvedValue(emptyCart());
+        await tabA.getContext().refresh();
+
+        await waitFor(() => expect(tabB.getContext().cart.items).toHaveLength(0));
+        // Two initial loads plus tab A's refresh: tab B took the broadcast cart instead of fetching.
+        expect(getCart).toHaveBeenCalledTimes(3);
+    });
+
     it("throws when used outside a CartProvider", () => {
         function Lonely() {
             useCart();
