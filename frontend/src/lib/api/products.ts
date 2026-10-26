@@ -15,8 +15,10 @@ export async function getProducts(params: ProductSearchParams = {}): Promise<Pag
     return response.json() as Promise<PageResponse<ProductSummary>>;
 }
 
+// The slug comes from the page URL, so it is encoded: a crafted value such as "../categories" must stay a
+// single path segment (a missing product, 404) instead of turning into a different backend path.
 export async function getProductBySlug(slug: string): Promise<ProductDetail> {
-    const response = await fetch(`${API_BASE_URL}/api/products/${slug}`);
+    const response = await fetch(`${API_BASE_URL}/api/products/${encodeURIComponent(slug)}`);
 
     if (response.status === 404) {
         notFound();
