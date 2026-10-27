@@ -1,6 +1,13 @@
 import {describe, expect, it} from "vitest";
 import type {PlaceOrderRequest} from "@/lib/api/types";
-import {normalizeDigits, PHONE_NUMBER_MESSAGE, POSTAL_CODE_MESSAGE, validateCheckout} from "./checkoutValidation";
+import {
+    MAX_LENGTHS,
+    normalizeDigits,
+    PHONE_NUMBER_MESSAGE,
+    POSTAL_CODE_MESSAGE,
+    SERVER_REJECTION_MESSAGES,
+    validateCheckout,
+} from "./checkoutValidation";
 
 const validValues: PlaceOrderRequest = {
     firstName: "سارا",
@@ -66,5 +73,19 @@ describe("validateCheckout", () => {
         ["containing letters", "12345abcde"],
     ])("rejects a postal code of %s", (_, postalCode) => {
         expect(validateCheckout({...validValues, postalCode})).toEqual({postalCode: POSTAL_CODE_MESSAGE});
+    });
+});
+
+describe("SERVER_REJECTION_MESSAGES", () => {
+    it.each(["firstName", "lastName", "address", "city", "notes"] as const)(
+        "states the %s length limit from MAX_LENGTHS",
+        (field) => {
+            expect(SERVER_REJECTION_MESSAGES[field]).toContain(MAX_LENGTHS[field].toLocaleString("fa-IR"));
+        },
+    );
+
+    it("describes phone number and postal code by their format, as the client-side check does", () => {
+        expect(SERVER_REJECTION_MESSAGES.phoneNumber).toBe(PHONE_NUMBER_MESSAGE);
+        expect(SERVER_REJECTION_MESSAGES.postalCode).toBe(POSTAL_CODE_MESSAGE);
     });
 });

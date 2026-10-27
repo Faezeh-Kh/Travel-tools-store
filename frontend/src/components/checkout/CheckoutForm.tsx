@@ -7,7 +7,13 @@ import {useCart} from "@/components/cart/CartProvider";
 import {ErrorAlert} from "@/components/ErrorAlert";
 import {OrderError, placeOrder} from "@/lib/api/orders";
 import type {Order, PlaceOrderRequest} from "@/lib/api/types";
-import {type CheckoutErrors, type CheckoutField, validateCheckout} from "@/lib/checkoutValidation";
+import {
+    type CheckoutErrors,
+    type CheckoutField,
+    MAX_LENGTHS,
+    SERVER_REJECTION_MESSAGES,
+    validateCheckout,
+} from "@/lib/checkoutValidation";
 
 const EMPTY_VALUES: PlaceOrderRequest = {
     firstName: "",
@@ -25,10 +31,6 @@ const EMPTY_VALUES: PlaceOrderRequest = {
 // - "generic": anything else, including a network failure.
 type SubmitFailure = "validation" | "cart" | "generic";
 
-// The backend's own field messages are English Bean Validation defaults, so they are never shown; a field
-// it rejected gets this Persian message instead.
-const SERVER_FIELD_MESSAGE = "این مقدار پذیرفته نشد. لطفاً آن را بررسی کنید.";
-
 // Object.hasOwn rather than `in`: "toString" is `in` every object, but it isn't a form field.
 function isCheckoutField(field: string): field is CheckoutField {
     return Object.hasOwn(EMPTY_VALUES, field);
@@ -42,7 +44,7 @@ function describeFailure(err: unknown): {failure: SubmitFailure; fieldErrors: Ch
             const fieldErrors: CheckoutErrors = {};
             for (const {field} of err.fieldErrors) {
                 if (isCheckoutField(field)) {
-                    fieldErrors[field] = SERVER_FIELD_MESSAGE;
+                    fieldErrors[field] = SERVER_REJECTION_MESSAGES[field];
                 }
             }
             if (Object.keys(fieldErrors).length > 0) {
@@ -81,7 +83,6 @@ function Field({
     onChange,
     optional = false,
     multiline = false,
-    maxLength,
     type = "text",
     inputMode,
     autoComplete,
@@ -94,7 +95,6 @@ function Field({
     onChange: (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
     optional?: boolean;
     multiline?: boolean;
-    maxLength: number;
     type?: "text" | "tel";
     inputMode?: "numeric";
     autoComplete?: string;
@@ -107,7 +107,7 @@ function Field({
         name,
         value,
         onChange,
-        maxLength,
+        maxLength: MAX_LENGTHS[name],
         autoComplete,
         dir,
         required: !optional,
@@ -221,23 +221,23 @@ export function CheckoutForm() {
         <form noValidate onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="grid gap-4 sm:grid-cols-2">
                 <Field name="firstName" label="نام" value={values.firstName} error={errors.firstName}
-                       onChange={handleChange} maxLength={100} autoComplete="given-name" />
+                       onChange={handleChange} autoComplete="given-name" />
                 <Field name="lastName" label="نام خانوادگی" value={values.lastName} error={errors.lastName}
-                       onChange={handleChange} maxLength={100} autoComplete="family-name" />
+                       onChange={handleChange} autoComplete="family-name" />
                 {/* Phone number and postal code are digit strings, so they read left-to-right even in this RTL page. */}
                 <Field name="phoneNumber" label="شماره موبایل" value={values.phoneNumber} error={errors.phoneNumber}
-                       onChange={handleChange} maxLength={20} type="tel" inputMode="numeric" autoComplete="tel"
+                       onChange={handleChange} type="tel" inputMode="numeric" autoComplete="tel"
                        dir="ltr" />
                 <Field name="city" label="شهر" value={values.city} error={errors.city}
-                       onChange={handleChange} maxLength={100} autoComplete="address-level2" />
+                       onChange={handleChange} autoComplete="address-level2" />
                 <Field name="postalCode" label="کد پستی" value={values.postalCode} error={errors.postalCode}
-                       onChange={handleChange} maxLength={20} inputMode="numeric" autoComplete="postal-code"
+                       onChange={handleChange} inputMode="numeric" autoComplete="postal-code"
                        dir="ltr" />
             </div>
             <Field name="address" label="نشانی" value={values.address} error={errors.address}
-                   onChange={handleChange} maxLength={500} multiline autoComplete="street-address" />
+                   onChange={handleChange} multiline autoComplete="street-address" />
             <Field name="notes" label="توضیحات" value={values.notes} error={errors.notes}
-                   onChange={handleChange} maxLength={1000} multiline optional />
+                   onChange={handleChange} multiline optional />
             {failure && (
                 <ErrorAlert onDismiss={() => setFailure(null)}>
                     {failure === "validation" && "برخی از اطلاعات واردشده پذیرفته نشد. لطفاً فیلدهای مشخص‌شده را بررسی کنید."}

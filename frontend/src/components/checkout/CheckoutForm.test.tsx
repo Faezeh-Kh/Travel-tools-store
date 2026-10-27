@@ -1,6 +1,7 @@
 import {beforeEach, describe, expect, it, vi} from "vitest";
 import {act, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import type {Order} from "@/lib/api/types";
+import {MAX_LENGTHS, POSTAL_CODE_MESSAGE} from "@/lib/checkoutValidation";
 
 const {placeOrder, refresh, replace, cartState} = vi.hoisted(() => ({
     placeOrder: vi.fn(),
@@ -161,6 +162,28 @@ describe("CheckoutForm validation", () => {
     });
 });
 
+describe("CheckoutForm length limits", () => {
+    it("limits every field to its MAX_LENGTHS entry", () => {
+        render(<CheckoutForm />);
+
+        const labels: Record<keyof typeof MAX_LENGTHS, string | RegExp> = {
+            firstName: "نام",
+            lastName: "نام خانوادگی",
+            phoneNumber: "شماره موبایل",
+            address: "نشانی",
+            city: "شهر",
+            postalCode: "کد پستی",
+            notes: /توضیحات/,
+        };
+        for (const [field, label] of Object.entries(labels)) {
+            expect(screen.getByLabelText(label)).toHaveAttribute(
+                "maxLength",
+                String(MAX_LENGTHS[field as keyof typeof MAX_LENGTHS]),
+            );
+        }
+    });
+});
+
 describe("CheckoutForm submission", () => {
     it("places the order with the details as typed, then refreshes the cart and opens the confirmation", async () => {
         placeOrder.mockResolvedValue(placedOrder);
@@ -206,10 +229,11 @@ describe("CheckoutForm submission", () => {
         expect(replace).toHaveBeenCalledOnce();
     });
 
-    it("marks the fields the backend rejected, focuses the first, and allows another try", async () => {
+    it("marks each field the backend rejected with that field's own rule, focuses the first, and allows another try", async () => {
         placeOrder.mockRejectedValue(
             new OrderError("VALIDATION_ERROR", "Validation failed.", [
                 {field: "postalCode", message: "must match \"\\d{10}\""},
+                {field: "city", message: `size must be between 0 and ${MAX_LENGTHS.city}`},
                 {field: "unknownField", message: "ignored"},
             ]),
         );
@@ -219,12 +243,19 @@ describe("CheckoutForm submission", () => {
         submit();
 
         await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("پذیرفته نشد"));
+        const city = screen.getByLabelText("شهر");
+        expect(city).toHaveAttribute("aria-invalid", "true");
+        expect(city).toHaveAccessibleDescription(
+            `لطفاً شهر را وارد کنید (حداکثر ${MAX_LENGTHS.city.toLocaleString("fa-IR")} نویسه).`,
+        );
         const postalCode = screen.getByLabelText("کد پستی");
         expect(postalCode).toHaveAttribute("aria-invalid", "true");
-        expect(postalCode).toHaveAccessibleDescription("این مقدار پذیرفته نشد. لطفاً آن را بررسی کنید.");
-        expect(postalCode).toHaveFocus();
-        // The backend's English message is never shown.
-        expect(screen.queryByText(/must match/)).not.toBeInTheDocument();
+        expect(postalCode).toHaveAccessibleDescription(POSTAL_CODE_MESSAGE);
+        // City comes before postal code in the form.
+        expect(city).toHaveFocus();
+        expect(screen.getByLabelText("نام")).not.toHaveAttribute("aria-invalid");
+        // The backend's English messages are never shown.
+        expect(screen.queryByText(/must match|size must be/)).not.toBeInTheDocument();
         expect(submitButton()).toBeEnabled();
         expect(replace).not.toHaveBeenCalled();
     });
