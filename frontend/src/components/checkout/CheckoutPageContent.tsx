@@ -20,7 +20,10 @@ function CheckoutSummary({cart}: {cart: Cart}) {
                     const attributeEntries = Object.entries(item.attributes);
                     return (
                         <li key={item.id} className="flex items-start justify-between gap-3">
-                            <div>
+                            {/* min-w-0: a flex item won't shrink below its content's width by default, so a long
+                                name would push the price out of place; with it, the name wraps instead
+                                (break-words also breaks a single over-long word). */}
+                            <div className="min-w-0 break-words">
                                 <p>
                                     {item.productName}
                                     <span className="text-zinc-500 dark:text-zinc-400">
@@ -73,7 +76,9 @@ export function CheckoutPageContent() {
         return (
             // The summary comes first in the page, so on a phone the shopper sees what they are ordering before
             // the form and its submit button. On wide screens the grid places it in the second column instead.
-            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
+            // The form keeps at least the width it had before (34.5rem at lg, where the page is 60rem wide after
+            // its padding); from xl the full max-w-5xl fits, so the wider 26rem summary still leaves it 36.5rem.
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_24rem] xl:grid-cols-[1fr_26rem]">
                 <div className="lg:col-start-2 lg:row-start-1">
                     <CheckoutSummary cart={cart} />
                 </div>
