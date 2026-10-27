@@ -5,7 +5,8 @@ export function Footer() {
     const year = new Date().getFullYear();
 
     return (
-        <footer className="border-t border-zinc-200 dark:border-zinc-800">
+        // print:hidden, like the header: printing any page prints only its content.
+        <footer className="border-t border-zinc-200 dark:border-zinc-800 print:hidden">
             <div className="mx-auto flex w-full max-w-[1536px] flex-col gap-6 px-4 py-6 text-sm text-zinc-600 dark:text-zinc-400 sm:flex-row sm:items-start sm:justify-between sm:px-6 lg:px-8">
                 <div className="flex flex-col gap-1">
                     <Link
