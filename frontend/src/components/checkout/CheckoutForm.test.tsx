@@ -3,10 +3,11 @@ import {act, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import type {Order} from "@/lib/api/types";
 import {MAX_LENGTHS, POSTAL_CODE_MESSAGE} from "@/lib/checkoutValidation";
 
-const {placeOrder, refresh, replace, cartState} = vi.hoisted(() => ({
+const {placeOrder, refresh, replace, onOrderPlaced, cartState} = vi.hoisted(() => ({
     placeOrder: vi.fn(),
     refresh: vi.fn(),
     replace: vi.fn(),
+    onOrderPlaced: vi.fn(),
     // The cart's load state as useCart() reports it; a test changes it, then re-renders, to put the form
     // in front of a cart that is reloading or failed to reload.
     cartState: {isLoading: false, loadError: null as string | null},
@@ -76,7 +77,7 @@ function submit() {
 
 describe("CheckoutForm validation", () => {
     it("does not place an order from an invalid form, and marks and describes each invalid field", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.change(screen.getByLabelText("نام"), {target: {value: ""}});
@@ -91,7 +92,7 @@ describe("CheckoutForm validation", () => {
     });
 
     it("moves focus to the first invalid field in page order", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.change(screen.getByLabelText("نشانی"), {target: {value: ""}});
@@ -102,7 +103,7 @@ describe("CheckoutForm validation", () => {
     });
 
     it("clears a field's error once an edit makes it valid, leaving the others", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         submit();
         fireEvent.change(screen.getByLabelText("نام"), {target: {value: "س"}});
@@ -113,7 +114,7 @@ describe("CheckoutForm validation", () => {
     });
 
     it("keeps a field's error, updated, while an edit leaves it invalid after a submit", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
         const postalCode = screen.getByLabelText("کد پستی");
 
         submit();
@@ -128,7 +129,7 @@ describe("CheckoutForm validation", () => {
     });
 
     it("flags a valid field that an edit makes invalid after a submit", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.change(screen.getByLabelText("نام"), {target: {value: ""}});
@@ -141,7 +142,7 @@ describe("CheckoutForm validation", () => {
     });
 
     it("shows no errors while the shopper types before the first submit", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fireEvent.change(screen.getByLabelText("کد پستی"), {target: {value: "12345"}});
 
@@ -150,7 +151,7 @@ describe("CheckoutForm validation", () => {
 
     it("marks notes as optional and never requires it", async () => {
         placeOrder.mockResolvedValue(placedOrder);
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         expect(screen.getByLabelText(/توضیحات/)).not.toBeRequired();
         expect(screen.getByLabelText("نام")).toBeRequired();
@@ -164,7 +165,7 @@ describe("CheckoutForm validation", () => {
 
 describe("CheckoutForm length limits", () => {
     it("limits every field to its MAX_LENGTHS entry", () => {
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         const labels: Record<keyof typeof MAX_LENGTHS, string | RegExp> = {
             firstName: "نام",
@@ -187,7 +188,7 @@ describe("CheckoutForm length limits", () => {
 describe("CheckoutForm submission", () => {
     it("places the order with the details as typed, then refreshes the cart and opens the confirmation", async () => {
         placeOrder.mockResolvedValue(placedOrder);
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.change(screen.getByLabelText(/توضیحات/), {target: {value: "زنگ نزنید"}});
@@ -207,6 +208,9 @@ describe("CheckoutForm submission", () => {
             expect(replace).toHaveBeenCalledExactlyOnceWith("/orders/22222222-2222-2222-2222-222222222222"),
         );
         expect(refresh).toHaveBeenCalledOnce();
+        // The page is told before the cart refresh, so the emptied cart can't be shown as "nothing to order".
+        expect(onOrderPlaced).toHaveBeenCalledOnce();
+        expect(onOrderPlaced.mock.invocationCallOrder[0]).toBeLessThan(refresh.mock.invocationCallOrder[0]);
         // Stays disabled until the confirmation page replaces the form.
         expect(submitButton()).toBeDisabled();
     });
@@ -214,7 +218,7 @@ describe("CheckoutForm submission", () => {
     it("disables the button while the order is being placed and ignores a second submit", async () => {
         const pending = deferred<Order>();
         placeOrder.mockReturnValue(pending.promise);
-        const {container} = render(<CheckoutForm />);
+        const {container} = render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         submit();
@@ -237,7 +241,7 @@ describe("CheckoutForm submission", () => {
                 {field: "unknownField", message: "ignored"},
             ]),
         );
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         submit();
@@ -264,7 +268,7 @@ describe("CheckoutForm submission", () => {
         "explains a %s cart failure with a link back to the cart, and reloads the cart",
         async (code) => {
             placeOrder.mockRejectedValue(new OrderError(code, "Only 1 unit(s) of TENT-3P-GRN are available."));
-            render(<CheckoutForm />);
+            render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
             fillValidForm();
             submit();
@@ -276,6 +280,7 @@ describe("CheckoutForm submission", () => {
             expect(screen.getByLabelText("نام")).toHaveValue("سارا");
             expect(submitButton()).toBeEnabled();
             expect(replace).not.toHaveBeenCalled();
+            expect(onOrderPlaced).not.toHaveBeenCalled();
         },
     );
 
@@ -283,7 +288,7 @@ describe("CheckoutForm submission", () => {
         const reload = deferred<void>();
         refresh.mockReturnValue(reload.promise);
         placeOrder.mockRejectedValue(new OrderError("CONFLICT", "Only 1 unit(s) of TENT-3P-GRN are available."));
-        const {container} = render(<CheckoutForm />);
+        const {container} = render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         submit();
@@ -302,7 +307,7 @@ describe("CheckoutForm submission", () => {
 
     it("says the cart is being updated, and blocks submitting, while the cart reloads", () => {
         cartState.isLoading = true;
-        const {container} = render(<CheckoutForm />);
+        const {container} = render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.submit(container.querySelector("form")!);
@@ -314,7 +319,7 @@ describe("CheckoutForm submission", () => {
 
     it("blocks submitting and offers a retry when the cart failed to reload", () => {
         cartState.loadError = "خطایی رخ داد.";
-        const {container, rerender} = render(<CheckoutForm />);
+        const {container, rerender} = render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         fireEvent.submit(container.querySelector("form")!);
@@ -328,7 +333,7 @@ describe("CheckoutForm submission", () => {
 
         // Once the cart is current again, the shopper can submit; what they typed is still there.
         cartState.loadError = null;
-        rerender(<CheckoutForm />);
+        rerender(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
         expect(screen.queryByRole("alert")).not.toBeInTheDocument();
         expect(submitButton()).toBeEnabled();
         expect(screen.getByLabelText("نام")).toHaveValue("سارا");
@@ -336,7 +341,7 @@ describe("CheckoutForm submission", () => {
 
     it("shows a generic, dismissible error for a network failure", async () => {
         placeOrder.mockRejectedValue(new TypeError("Failed to fetch"));
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         submit();
@@ -350,7 +355,7 @@ describe("CheckoutForm submission", () => {
 
     it("treats a validation error naming none of the form's fields as a generic failure", async () => {
         placeOrder.mockRejectedValue(new OrderError("VALIDATION_ERROR", "Validation failed.", []));
-        render(<CheckoutForm />);
+        render(<CheckoutForm onOrderPlaced={onOrderPlaced} />);
 
         fillValidForm();
         submit();

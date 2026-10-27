@@ -132,7 +132,9 @@ function Field({
     );
 }
 
-export function CheckoutForm() {
+// onOrderPlaced runs once the order exists, before the cart is refreshed: the refreshed cart is empty, and
+// the page must not mistake that for "nothing to check out" while the confirmation page is still loading.
+export function CheckoutForm({onOrderPlaced}: {onOrderPlaced: () => void}) {
     const router = useRouter();
     const {refresh: refreshCart, isLoading: isCartLoading, loadError: cartLoadError} = useCart();
     // After a "cart changed" failure the form reloads the cart. Until that reload succeeds, the summary
@@ -207,6 +209,7 @@ export function CheckoutForm() {
 
         // The order exists now. The button stays disabled (isSubmitting is not reset) until the confirmation
         // page replaces this one, so it can't be submitted again in between.
+        onOrderPlaced();
         // Checkout emptied the cart on the server: reload it, which also updates the header badge in every
         // open tab. Not awaited - navigating needn't wait for it, and refresh() never rejects.
         void refreshCart();

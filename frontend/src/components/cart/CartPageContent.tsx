@@ -175,6 +175,12 @@ function CartSummary({totalPrice}: {totalPrice: number}) {
                 <span className="text-zinc-600 dark:text-zinc-400">جمع کل</span>
                 <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
             </div>
+            <Link
+                href="/checkout"
+                className="rounded-full bg-accent px-5 py-3 text-center font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+                ادامه فرایند خرید
+            </Link>
         </div>
     );
 }
