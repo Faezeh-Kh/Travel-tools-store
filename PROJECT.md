@@ -28,7 +28,7 @@ defines engineering and verification rules.
 | Cart           | id, items, createdAt, updatedAt; calculated subtotal, totalPrice                                                                                |
 | CartItem       | id, cart, productVariant, quantity; calculated unitPrice, totalPrice                                                                            |
 | Order          | id, orderNumber, status, items, firstName, lastName, phoneNumber, address, city, postalCode, notes (optional), totalPrice, createdAt, updatedAt |
-| OrderItem      | id, order, productId, productVariantId, productName, variantDescription, sku, quantity, unitPrice, totalPrice                                   |
+| OrderItem      | id, order, productId, productVariantId, productName, variantDescription, productImage (optional), sku, quantity, unitPrice, totalPrice         |
 
 These are domain attributes, not a mandatory database-column layout. Each Cart owns its CartItems; each Order owns its
 OrderItems. Cart prices/totals are calculated from current variant prices, not stored as authoritative values. OrderItem
@@ -60,13 +60,31 @@ variant/product availability authoritatively — inside its own transaction, at 
 the cart shows; the cart's own stock check is advisory only. Keep order creation decoupled for future payments; build
 no payment-provider infrastructure now.
 
-**Orders:** Assign unique human-readable numbers. Snapshot productId, productVariantId, productName, variantDescription,
-sku, quantity, unitPrice, totalPrice; subsequent catalog changes cannot alter purchases. Statuses: PENDING, CONFIRMED,
-SHIPPED, DELIVERED, CANCELLED.
+Checkout locks the cart, then the cart's variant rows sorted by id (see `OrderService`), and reduces stock when the
+order is created, so stock is already committed to PENDING orders. Consequence for Phase 7: cancelling an order must
+return its quantities to stock. Items are priced at checkout time; if a price changes between viewing the cart and
+submitting, the order uses the new price (shown on the confirmation). Known limitation, accepted while there is no
+payment step: a guard would have the client send the total it displayed and reject a mismatch.
+
+Checkout does not lock product rows. Constraint for Phase 7: deactivating a product must first lock that product's
+variant rows (sorted by id), then update the product. It then waits for running checkouts of those variants, and a
+checkout that starts later blocks on the variant locks and reads the product's new state after them.
+
+**Orders:** Assign unique human-readable numbers. Order numbers are sequential and therefore guessable, so an
+order's details are only readable through a separate random access token (the customer's confirmation link). Snapshot productId, productVariantId, productName, variantDescription,
+sku, quantity, unitPrice, totalPrice, and the product's primary image; subsequent catalog changes cannot alter
+purchases. Statuses: PENDING, CONFIRMED, SHIPPED, DELIVERED, CANCELLED.
 
 **Administration:** Authenticated, authorized admins create/edit/deactivate products, variants, and categories; update
 variant prices/stock; view orders and change status. Customer browsing is anonymous; defer registration while allowing
 future accounts.
+
+**Retention:** Orders are never deleted; an order that will not proceed is CANCELLED. Products and variants referenced
+by orders or carts, and categories that have products, are deactivated, never physically deleted (foreign keys reject
+such deletes). Retained rows cost little storage at this catalog size. Decision point for Phase 8: if abandoned carts or
+inactive catalog rows accumulate, add a scheduled cleanup that deletes carts older than an agreed age, then inactive
+products/variants no longer referenced; orders are never purged. Such a job must take each cart's lock before deleting
+its items, as cart edits and checkout do; checkout relies on a locked cart's items not changing underneath it.
 
 ## Storefront and documentation
 
@@ -107,7 +125,8 @@ tests once that tooling is adopted, not with additional unit tests.
 6. Checkout/orders: form, creation, snapshots, confirmation, numbers, statuses.
 7. Administration: authentication/authorization and product, variant, category, and order management APIs.
 8. Hardening: security, architecture, performance, accessibility, SEO, tests, documentation reviews. Quality rules apply
-   throughout.
+   throughout. Includes a PostgreSQL `lock_timeout` for checkout/cart transactions: row locks wait indefinitely by
+   default, so a hung transaction holding a variant lock would stall every checkout of that variant.
 
 ## Scope boundary
 

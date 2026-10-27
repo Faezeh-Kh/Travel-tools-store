@@ -99,6 +99,14 @@ describe("getProductBySlug", () => {
         expect(result).toEqual(sampleProductDetail);
     });
 
+    it("encodes the slug so a crafted value cannot change the backend path", async () => {
+        const fetchMock = mockFetchOnce({ok: true, status: 200, json: async () => sampleProductDetail});
+
+        await getProductBySlug("../categories");
+
+        expect(fetchMock).toHaveBeenCalledWith("http://localhost:8080/api/products/..%2Fcategories");
+    });
+
     it("calls notFound() when the backend returns 404", async () => {
         mockFetchOnce({ok: false, status: 404});
 

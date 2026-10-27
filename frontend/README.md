@@ -23,8 +23,8 @@ data — every page fetches from it server-side.
 
 The API base URL is read from the `API_BASE_URL` environment variable, defaulting to `http://localhost:8080` if
 unset (see `src/lib/api/config.ts`). Set it in a local `.env.local` file (git-ignored) if your backend runs
-elsewhere. Cart calls run client-side (unlike every other page fetch, which runs server-side), so they instead read
-`NEXT_PUBLIC_API_BASE_URL` — the `NEXT_PUBLIC_` prefix is required for Next.js to inline a variable into the browser
+elsewhere. Cart calls and placing an order run client-side (unlike every other page fetch, which runs server-side),
+because they need the browser's HTTP-only `cartId` cookie, so they instead read `NEXT_PUBLIC_API_BASE_URL` — the `NEXT_PUBLIC_` prefix is required for Next.js to inline a variable into the browser
 bundle. Set both variables to the same value if you override the default.
 
 ## Routes
@@ -36,7 +36,9 @@ bundle. Set both variables to the same value if you override the default.
 | `/products/[slug]` | Product detail: image, info, variant selection (no choice shown for a single-variant product) with cart-aware stock and add to cart, plus a full-width description/specifications section below (side by side at desktop). |
 | `/categories/[slug]` | Category detail (name/description) with a paginated list of that category's products and a link to filter them in the full catalog. |
 | `/contact` | Static contact page: shop address with an embedded OpenStreetMap map and a Neshan directions link, opening hours, and phone/email/Telegram cards. Details live in one `CONTACT` constant in `page.tsx`. |
-| `/cart` | Cart: item list with quantity steppers and removal, a header badge kept in sync via shared `CartProvider` state. No checkout yet — that's Phase 6. |
+| `/cart` | Cart: item list with quantity steppers and removal, a header badge kept in sync via shared `CartProvider` state, and a link to checkout. |
+| `/checkout` | Checkout: the contact/delivery form next to a summary of the cart (above the form on phones), or the cart's loading, failure, or empty state. After a "cart changed" rejection, the cart is reloaded and ordering stays blocked until that succeeds, so an order is never placed against contents the shopper hasn't seen. Not indexed. |
+| `/orders/[accessToken]` | Order confirmation, the page checkout leads to and the shopper's only way back to the order (the token is the secret; see the root README's order contract). Shows the order from the backend, never cached, with a print / save-as-PDF button. Not indexed and sends no referrer, so the token never leaks to other sites. An unknown token shows a not-found page, with HTTP 200 rather than 404: the root `loading.tsx` makes pages stream, and a streamed response's status can't change afterwards. |
 
 ## Project structure and conventions
 
@@ -44,7 +46,10 @@ bundle. Set both variables to the same value if you override the default.
   `not-found.tsx`).
 - `src/lib/api/` — all backend communication. Components never call `fetch` directly; they call a function from
   here. `types.ts` mirrors the backend response DTOs.
-- `src/lib/format.ts` — shared formatting (Persian-locale prices).
+- `src/lib/format.ts` — shared formatting: Persian-locale prices, and dates in the Solar Hijri calendar, always in
+  Iran's time zone (pages render on the server, whose own time zone must not decide the date).
+- `src/lib/checkoutValidation.ts` — the checkout form's client-side rules, mirroring the backend's (the backend stays
+  the authority), its Persian messages, and the `MAX_LENGTHS` both the inputs and the messages use.
 - `src/components/` — components shared across multiple pages (`ProductCard`, `CategoryCard`, `CtaLink`,
   `VariantSelector`, etc.).
   - `src/components/layout/` — site-wide chrome (`Header`, `Footer`), rendered once from the root layout, and the
@@ -56,9 +61,13 @@ bundle. Set both variables to the same value if you override the default.
   - `src/components/product/` — product-specific components: detail page, catalog filters and sort, and
     pagination.
   - `src/components/cart/` — cart-specific components: shared state (`CartProvider`), the header indicator
-    (`CartLink`), and the cart page content (`CartPageContent`).
+    (`CartLink`), the cart page content (`CartPageContent`), and the cart's load-error and empty states
+    (`CartLoadError`, `EmptyCart`), which checkout shows too.
+  - `src/components/checkout/` — the checkout form (`CheckoutForm`) and page content (`CheckoutPageContent`).
+  - `src/components/order/` — the order confirmation (`OrderConfirmation`) and its print button (`PrintButton`).
 - Shared visual tokens (`accent`, `background`, `foreground`) are defined once in `src/app/globals.css`'s `@theme`
-  block. Reuse `CtaLink` for button-styled links rather than duplicating its class list.
+  block. Dark mode applies on screen only, so printing always gives dark text on white paper; printing also leaves out
+  the site header and footer (`print:hidden`). Use `print:` variants for anything else that shouldn't be printed. Reuse `CtaLink` for button-styled links rather than duplicating its class list.
 - **Image handling**: no image-storage infrastructure exists yet (admin upload is Phase 7 work). Any component
   displaying an image must render a placeholder when the URL is absent *and* recover via the image's `onError`
   event when a present URL fails to load — a non-null URL is not the same as a loadable one. See `ProductCard`,
@@ -87,10 +96,18 @@ component:
 - `src/components/cart/*.test.tsx` — shared cart state (`CartProvider`, including the mutation guard and
   initial-load-failure recovery), the header cart indicator (`CartLink`), and the cart page (`CartPageContent`),
   including quantity changes, removal, and a stock-conflict error anchored to the row that caused it.
+- `src/lib/checkoutValidation.test.ts` and `src/components/checkout/*.test.tsx` — checkout rules and messages, the
+  form's submission (double-submit guard, backend field and cart rejections, staying blocked until the cart has
+  reloaded), and the page's states, run against the real `CartProvider` with a mocked API.
+- `src/components/order/*.test.tsx` — the order confirmation's content and the print button.
 
-`async` Server Components (every `page.tsx` that fetches data) are **not** unit-tested — per the Next.js docs for
-the installed version, Vitest does not currently support rendering them. Coverage for those belongs to end-to-end
-tests once that tooling is adopted (not yet — see `PROJECT.md`).
+`async` Server Components (every `page.tsx` that fetches data) can't be rendered as `<Page />` under Vitest — per the
+Next.js docs for the installed version, it doesn't support them yet — so most aren't unit-tested; coverage for those
+belongs to end-to-end tests once that tooling is adopted (not yet — see `PROJECT.md`). The order confirmation page
+is the exception: `src/app/orders/[accessToken]/page.test.tsx` calls the page function directly with mocked data and
+renders the JSX it returns, which works because everything it renders is synchronous. It covers what only the page
+does — loading the order for the URL's token, passing failures on to the not-found and error pages, and its
+`noindex`/`no-referrer` metadata.
 
 ## Lint, type-check, and build
 

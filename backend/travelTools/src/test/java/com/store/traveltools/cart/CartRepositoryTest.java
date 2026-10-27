@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -144,5 +145,21 @@ class CartRepositoryTest extends AbstractIntegrationTest {
 
         assertThat(updated.getQuantity()).isEqualTo(3);
         assertThat(updated.getUpdatedAt()).isAfter(previousUpdatedAt);
+    }
+
+    @Test
+    void findProductVariantIdsByCartId_returnsOnlyThatCartsVariantIds() {
+        Cart cart = cartRepository.saveAndFlush(new Cart());
+        Cart otherCart = cartRepository.saveAndFlush(new Cart());
+        ProductVariant first = createVariant("TEST-CART-IDS-1");
+        ProductVariant second = createVariant("TEST-CART-IDS-2");
+        ProductVariant other = createVariant("TEST-CART-IDS-3");
+        cartItemRepository.saveAndFlush(new CartItem(cart, first, 1));
+        cartItemRepository.saveAndFlush(new CartItem(cart, second, 2));
+        cartItemRepository.saveAndFlush(new CartItem(otherCart, other, 1));
+
+        assertThat(cartItemRepository.findProductVariantIdsByCartId(cart.getId()))
+                .containsExactlyInAnyOrder(first.getId(), second.getId());
+        assertThat(cartItemRepository.findProductVariantIdsByCartId(UUID.randomUUID())).isEmpty();
     }
 }

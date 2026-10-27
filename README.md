@@ -2,11 +2,23 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phases 3 (Storefront) and 4 (Discovery) — functionally complete. Home, catalog, product/category detail
-pages, variant selection, site-wide header/footer, and a static contact page are all built, Persian/RTL throughout,
-with a behavior-focused frontend test suite. The catalog supports product search (from the site-wide header), category
-and in-stock filters, sorting, and pagination; category pages list their products. Cart, checkout, and admin management
-remain Phase 5–7 work.
+**Status:** Phases 1–6 (Foundation through Checkout/orders) are functionally complete.
+
+- **Storefront and discovery:** home, catalog, product/category detail pages with a photo gallery and variant
+  selection, site-wide header/footer, and a static contact page — Persian/RTL throughout, prices in Toman. The catalog
+  supports search (from the site-wide header), category and in-stock filters, sorting, and pagination.
+- **Cart:** an anonymous, cookie-identified cart with add/update/remove, server-calculated totals, and advisory stock
+  checks. Concurrent mutations of the same cart are serialized with a pessimistic lock. The frontend shows a header
+  badge, a cart page, and add-to-cart on product pages, kept in sync across browser tabs.
+- **Checkout/orders:** placing an order from the cart with authoritative stock checks (locked variant rows), stock
+  reduction, purchase-time item snapshots, `TT-` order numbers, and a confirmation lookup by a secret access token. The
+  frontend has a checkout page (contact/delivery form with Persian validation next to an order summary) and an order
+  confirmation page that can be printed or saved as PDF.
+- **Development data:** a dev-only catalog seed generated from a product sheet (see below).
+
+Administration with authentication (Phase 7) and hardening (Phase 8) are not started. Until Phase 7, there is no admin
+UI or authentication: catalog data comes from migrations and the dev seed, and orders stay `PENDING` because nothing
+can change their status yet. There is no online payment; order creation is kept separate from payment for later.
 
 ## Architecture and stack
 
@@ -25,15 +37,20 @@ Local infrastructure (PostgreSQL) runs via Docker Compose; both applications run
 
 ## Configuration
 
-The backend reads its database connection from environment variables, with local-friendly defaults matching Docker Compose:
+The backend reads its configuration from environment variables, with local-friendly defaults matching Docker Compose
+and the frontend dev server:
 
-| Variable | Default |
-| --- | --- |
-| `DB_HOST` | `localhost` |
-| `DB_PORT` | `5432` |
-| `DB_NAME` | `travel_tools` |
-| `DB_USER` | `travel_tools` |
-| `DB_PASSWORD` | `travel_tools` |
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `DB_HOST` | `localhost` | PostgreSQL host |
+| `DB_PORT` | `5432` | PostgreSQL port |
+| `DB_NAME` | `travel_tools` | Database name |
+| `DB_USER` | `travel_tools` | Database user |
+| `DB_PASSWORD` | `travel_tools` | Database password |
+| `FRONTEND_ORIGIN` | `http://localhost:3000` | The single origin allowed by CORS for `/api/**`. Credentialed requests (the cart cookie) require an explicit origin, not `*`. |
+| `CART_COOKIE_SECURE` | `false` | Sets the `Secure` flag on the `cartId` cookie. Keep `false` for local HTTP; set `true` behind HTTPS. |
+
+The frontend has its own variables (`API_BASE_URL`, `NEXT_PUBLIC_API_BASE_URL`); see `frontend/README.md`.
 
 Copy `.env.example` to `.env` at the repository root and adjust values if needed; `.env` is used by Docker Compose and is git-ignored.
 
@@ -152,9 +169,61 @@ Endpoints implemented so far:
 | Method | Path | Description |
 | --- | --- | --- |
 | GET | `/api/categories` | List active categories, ordered by name. Includes an optional `imageUrl`. |
-| GET | `/api/products` | List active products with a per-product price (or min/max range across active variants), ordered by name. |
+| GET | `/api/products` | Paginated list of active products, each with a single price or a min/max range across its active variants. Query parameters below. |
 | GET | `/api/products/{slug}` | Product detail: full description, images, specifications, category, and active purchasable variants. 404 if the slug is unknown or the product is inactive. |
+| GET | `/api/cart` | The current cart (from the `cartId` cookie). Returns an empty cart when there is no cookie or the cart is unknown; never creates one. |
+| POST | `/api/cart/items` | Add `{productVariantId, quantity}`. Creates the cart on first use and sets the `cartId` cookie. Adding an existing variant increases its quantity. |
+| PATCH | `/api/cart/items/{itemId}` | Set an item's quantity: `{quantity}` (≥ 1). |
+| DELETE | `/api/cart/items/{itemId}` | Remove an item. |
+| POST | `/api/orders` | Place an order from the cart (`cartId` cookie) with the contact/delivery details below. 201 with the order and `Location: /api/orders/{accessToken}`. |
+| GET | `/api/orders/{accessToken}` | The order behind a confirmation link. 404 for an unknown or malformed token. |
 
-Errors use a consistent JSON shape (`{timestamp, status, code, message, fieldErrors}`) for both application errors (e.g. an
-unknown product slug) and framework-level ones (unmapped routes, wrong HTTP methods), via a global exception handler that
-hides internal exception/database details.
+`GET /api/products` query parameters (all optional):
+
+| Parameter | Default | Description |
+| --- | --- | --- |
+| `search` | — | Case-insensitive partial match on name or description (max 200 characters). |
+| `category` | — | Category slug. |
+| `inStock` | `false` | When `true`, only products with an active variant in stock. |
+| `sort` | name | `newest`, `price-asc`, or `price-desc`. Without it, products are ordered by name; ties are always broken by name. |
+| `page` | `0` | Zero-based page index. |
+| `size` | `20` | Page size, 1–100. |
+
+The response is `{items, page, size, totalElements, totalPages}`.
+
+**Cart contract.** The cart is anonymous and identified by an HTTP-only, `SameSite=Lax` `cartId` cookie (30 days),
+refreshed on every mutation. All cart endpoints return the full cart (`{id, items, subtotal, totalPrice}`). Prices and
+totals are always calculated on the server from current variant prices and never taken from the client. Requests for
+an unknown, inactive, or not-owned variant, cart, or item return 404. A quantity above the variant's current stock
+returns 409. This stock check is advisory feedback, not a reservation: checkout re-validates stock when it creates the
+order (see the order contract below).
+
+**Order contract.** `POST /api/orders` takes `{firstName, lastName, phoneNumber, address, city, postalCode, notes}`:
+
+| Field | Rule |
+| --- | --- |
+| `firstName`, `lastName` | Required, max 100 characters, letters only (see below). |
+| `phoneNumber` | Required Iranian mobile number: `09` followed by 9 digits. |
+| `address` | Required, max 500 characters. |
+| `city` | Required, max 100 characters, letters only (see below). Not checked against a list of cities. |
+| `postalCode` | Required, 10 digits. |
+| `notes` | Optional, max 1000 characters. |
+
+"Letters only" means letters of any script (Persian or English), combining marks, spaces, and the zero-width
+non-joiner (U+200C) used inside Persian words; digits and punctuation are rejected. Surrounding whitespace is
+removed, and `phoneNumber`/`postalCode` also accept Persian or Arabic digits with spaces or
+hyphens between digit groups (normalized before validation). Checkout locks the cart and its variant rows, re-checks
+availability and stock, reduces stock, snapshots each item at its current price, and empties the cart (the cart and
+its cookie remain for the next purchase), all in one transaction. 404 when there is no cart; 409 (`CONFLICT`) when the
+cart is empty or an item is unavailable or short of stock - nothing is changed then. A repeated submit of the same
+cart finds it empty, so it can't create a second order.
+
+An order has two identifiers: the human-readable `orderNumber` (`TT-100001`, sequential, for display and support) and
+a random `accessToken`. Only the token can read an order's details (name, phone, address), because sequential numbers
+are guessable; the response that places the order is the only place the token is handed out. Order responses are sent
+with `Cache-Control: no-store`.
+
+Errors use a consistent JSON shape (`{timestamp, status, code, message, fieldErrors}`) for both application errors and
+framework-level ones (unmapped routes, wrong HTTP methods, malformed requests), via a global exception handler that hides
+internal exception/database details. Codes: `NOT_FOUND` (404), `CONFLICT` (409), `VALIDATION_ERROR` (400, with
+`fieldErrors`), `REQUEST_ERROR` (other framework-level errors, e.g. unmapped routes or unsupported methods), and `INTERNAL_ERROR` (500).

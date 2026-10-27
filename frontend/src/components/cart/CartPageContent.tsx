@@ -8,6 +8,8 @@ import {cartErrorMessage} from "@/lib/cartErrorMessages";
 import {formatPrice} from "@/lib/format";
 import {TrashIcon} from "@/components/icons/TrashIcon";
 import {ErrorAlert} from "@/components/ErrorAlert";
+import {CartLoadError} from "@/components/cart/CartLoadError";
+import {EmptyCart} from "@/components/cart/EmptyCart";
 import type {CartItem} from "@/lib/api/types";
 
 // enabled:hover (not plain hover): :disabled doesn't block :hover from matching on its own, so an
@@ -165,43 +167,24 @@ function CartItemRow({
     );
 }
 
-function CartLoadError({message, onRetry}: {message: string; onRetry: () => void}) {
-    return (
-        <div className="flex flex-col items-start gap-3 text-zinc-500 dark:text-zinc-400">
-            <p>{message}</p>
-            <button
-                type="button"
-                onClick={onRetry}
-                className="rounded-full bg-accent px-5 py-2 text-accent-foreground hover:bg-accent-hover"
-            >
-                تلاش دوباره
-            </button>
-        </div>
-    );
-}
-
-function EmptyCart() {
-    return (
-        <div className="flex flex-col items-start gap-3 text-zinc-500 dark:text-zinc-400">
-            <p>سبد خرید شما خالی است.</p>
-            <Link
-                href="/products"
-                className="rounded-full bg-accent px-5 py-2 text-accent-foreground hover:bg-accent-hover"
-            >
-                مشاهده محصولات
-            </Link>
-        </div>
-    );
-}
-
 function CartSummary({totalPrice}: {totalPrice: number}) {
     return (
-        <div className="flex flex-col gap-3 rounded-2xl bg-zinc-50 p-5 lg:sticky lg:top-24 dark:bg-zinc-900">
-            <h2 className="font-semibold">جزئیات پرداخت</h2>
-            <div className="flex items-center justify-between border-t border-zinc-200 pt-3 dark:border-zinc-800">
+        // self-start: a grid item stretches to its row's height by default - here, the whole product list.
+        // Sized to its own content instead, the card stays compact and lg:sticky has room to keep it in view.
+        <div className="flex flex-col gap-3 self-start rounded-2xl bg-zinc-50 p-5 lg:sticky lg:top-24 dark:bg-zinc-900">
+            {/* Each row - title, total, button - is at least 48px (min-h-12) with its content centered, so the
+                card has an even rhythm whatever the font size or price length. */}
+            <h2 className="flex min-h-12 items-center font-semibold">جزئیات پرداخت</h2>
+            <div className="flex min-h-12 items-center justify-between border-t border-zinc-200 dark:border-zinc-800">
                 <span className="text-zinc-600 dark:text-zinc-400">جمع کل</span>
                 <span className="text-lg font-bold">{formatPrice(totalPrice)}</span>
             </div>
+            <Link
+                href="/checkout"
+                className="mt-3 flex min-h-12 items-center justify-center rounded-full bg-accent px-5 py-3 text-center font-semibold text-accent-foreground hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+                ادامه فرایند خرید
+            </Link>
         </div>
     );
 }

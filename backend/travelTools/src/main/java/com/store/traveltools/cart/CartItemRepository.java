@@ -19,4 +19,9 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long> {
     Optional<CartItem> findByIdAndCartId(Long id, UUID cartId);
 
     Optional<CartItem> findByCartIdAndProductVariantId(UUID cartId, Long productVariantId);
+
+    // Only the ids, without loading the variants: checkout must lock the variant rows before anything
+    // loads them, or it could work with stock values read before the lock was taken.
+    @Query("select ci.productVariant.id from CartItem ci where ci.cart.id = :cartId")
+    List<Long> findProductVariantIdsByCartId(UUID cartId);
 }

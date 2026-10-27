@@ -8,7 +8,8 @@ const SEARCH_CLASS_NAME = "flex min-w-60 flex-1";
 
 export function Header() {
     return (
-        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-background dark:border-zinc-800">
+        // print:hidden: site navigation means nothing on paper, so printing any page prints only its content.
+        <header className="sticky top-0 z-10 border-b border-zinc-200 bg-background dark:border-zinc-800 print:hidden">
             <div className="mx-auto flex w-full max-w-[1536px] flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
                 <div className="flex flex-1 flex-wrap items-center gap-x-6 gap-y-3">
                     <Link

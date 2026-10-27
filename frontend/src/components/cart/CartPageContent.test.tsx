@@ -114,6 +114,14 @@ describe("CartPageContent", () => {
         expect(screen.getByText(`${(15500000).toLocaleString("fa-IR")} تومان`)).toBeInTheDocument();
     });
 
+    it("links from the summary to the checkout page", async () => {
+        getCart.mockResolvedValue(cartWithItems());
+
+        renderPage();
+
+        expect(await screen.findByRole("link", {name: "ادامه فرایند خرید"})).toHaveAttribute("href", "/checkout");
+    });
+
     it("links the product thumbnail and name to the product detail page", async () => {
         const cart = cartWithItems();
         cart.items[0].primaryImage = "/images/products/tent-3-person-mountaineering/1.jpg";

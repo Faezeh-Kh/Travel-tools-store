@@ -27,7 +27,6 @@ import com.store.traveltools.cart.dto.UpdateCartItemQuantityRequest;
 @RequestMapping("/api/cart")
 public class CartController {
 
-    private static final String CART_COOKIE_NAME = "cartId";
     private static final Duration CART_COOKIE_MAX_AGE = Duration.ofDays(30);
 
     private final CartService cartService;
@@ -40,61 +39,46 @@ public class CartController {
     }
 
     @GetMapping
-    public CartResponse getCart(@CookieValue(value = CART_COOKIE_NAME, required = false) String cartIdCookie) {
-        return cartService.getCart(parseCartId(cartIdCookie));
+    public CartResponse getCart(@CookieValue(value = CartCookie.NAME, required = false) String cartIdCookie) {
+        return cartService.getCart(CartCookie.parse(cartIdCookie));
     }
 
     @PostMapping("/items")
     public CartResponse addItem(
-            @CookieValue(value = CART_COOKIE_NAME, required = false) String cartIdCookie,
+            @CookieValue(value = CartCookie.NAME, required = false) String cartIdCookie,
             @Valid @RequestBody AddCartItemRequest request,
             HttpServletResponse response) {
-        CartResponse cart = cartService.addItem(parseCartId(cartIdCookie), request);
+        CartResponse cart = cartService.addItem(CartCookie.parse(cartIdCookie), request);
         setCartCookie(response, cart.id());
         return cart;
     }
 
     @PatchMapping("/items/{itemId}")
     public CartResponse updateItemQuantity(
-            @CookieValue(value = CART_COOKIE_NAME, required = false) String cartIdCookie,
+            @CookieValue(value = CartCookie.NAME, required = false) String cartIdCookie,
             @PathVariable Long itemId,
             @Valid @RequestBody UpdateCartItemQuantityRequest request,
             HttpServletResponse response) {
-        CartResponse cart = cartService.updateItemQuantity(parseCartId(cartIdCookie), itemId, request);
+        CartResponse cart = cartService.updateItemQuantity(CartCookie.parse(cartIdCookie), itemId, request);
         setCartCookie(response, cart.id());
         return cart;
     }
 
     @DeleteMapping("/items/{itemId}")
     public CartResponse removeItem(
-            @CookieValue(value = CART_COOKIE_NAME, required = false) String cartIdCookie,
+            @CookieValue(value = CartCookie.NAME, required = false) String cartIdCookie,
             @PathVariable Long itemId,
             HttpServletResponse response) {
-        CartResponse cart = cartService.removeItem(parseCartId(cartIdCookie), itemId);
+        CartResponse cart = cartService.removeItem(CartCookie.parse(cartIdCookie), itemId);
         setCartCookie(response, cart.id());
         return cart;
-    }
-
-    // A missing cookie is null (no cookie sent at all); a present-but-invalid value (tampered/corrupt)
-    // is treated the same way rather than surfacing an error - CartService already treats a well-formed
-    // but unknown cart id leniently (falls back to creating a new cart), so this just extends that same
-    // leniency to malformed input, rather than letting it 500.
-    private static UUID parseCartId(String cartIdCookie) {
-        if (cartIdCookie == null) {
-            return null;
-        }
-        try {
-            return UUID.fromString(cartIdCookie);
-        } catch (IllegalArgumentException e) {
-            return null;
-        }
     }
 
     // app.cart-cookie.secure defaults to false because this app currently runs over plain HTTP in dev -
     // a Secure cookie simply wouldn't be stored/sent by the browser under HTTP. Set
     // CART_COOKIE_SECURE=true once deployed behind HTTPS, rather than hardcoding it here.
     private void setCartCookie(HttpServletResponse response, UUID cartId) {
-        ResponseCookie cookie = ResponseCookie.from(CART_COOKIE_NAME, cartId.toString())
+        ResponseCookie cookie = ResponseCookie.from(CartCookie.NAME, cartId.toString())
                 .httpOnly(true)
                 .secure(secureCookie)
                 .sameSite("Lax")

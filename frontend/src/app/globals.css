@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Dark mode applies on screen only, so a printout (e.g. the order confirmation's "Print / Save as PDF") is
+   always dark text on white paper. Tailwind's default dark: variant would also match print when the OS is
+   in dark mode, since prefers-color-scheme ignores the medium. */
+@custom-variant dark (@media screen and (prefers-color-scheme: dark));
+
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -17,7 +22,7 @@
   --font-sans: var(--font-vazirmatn);
 }
 
-@media (prefers-color-scheme: dark) {
+@media screen and (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
     --foreground: #ededed;

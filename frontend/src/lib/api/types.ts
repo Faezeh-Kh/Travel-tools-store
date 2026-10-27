@@ -78,3 +78,50 @@ export type Cart = {
   subtotal: number;
   totalPrice: number;
 };
+
+// The body of POST /api/orders. The backend trims every field and normalizes Persian/Arabic digits in
+// phoneNumber/postalCode, so the form can send what the shopper typed.
+export type PlaceOrderRequest = {
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  notes: string;
+};
+
+export type OrderStatus = "PENDING" | "CONFIRMED" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+
+// Purchase-time snapshot: these values never change after checkout, even if the product does.
+export type OrderItem = {
+  productName: string;
+  variantDescription: string;
+  productImage: string | null;
+  sku: string;
+  quantity: number;
+  unitPrice: number;
+  totalPrice: number;
+};
+
+export type Order = {
+  orderNumber: string;
+  accessToken: string;
+  status: OrderStatus;
+  firstName: string;
+  lastName: string;
+  phoneNumber: string;
+  address: string;
+  city: string;
+  postalCode: string;
+  notes: string | null;
+  items: OrderItem[];
+  totalPrice: number;
+  createdAt: string;
+};
+
+// One entry of the backend's `fieldErrors` array on a 400 VALIDATION_ERROR response.
+export type FieldError = {
+  field: string;
+  message: string;
+};

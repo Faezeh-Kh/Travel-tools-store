@@ -202,7 +202,9 @@ class ProductRepositoryTest extends AbstractIntegrationTest {
         Product single = createProduct(testCategory, "Test Single Variant Product Asc", "test-sort-single-asc");
         createVariant(single, "TEST-SORT-SINGLE-ASC", new BigDecimal("100.00"), 5, true);
 
-        List<Long> order = search(null, null, false, ProductSort.PRICE_ASC).getContent().stream()
+        // Scoped to this test's category: other tests commit products to the shared database, enough of
+        // them would push these two off the first page.
+        List<Long> order = search(null, testCategory.getSlug(), false, ProductSort.PRICE_ASC).getContent().stream()
                 .map(ProductCatalogRow::getId).toList();
 
         // multiVariant's minimum (50) is below single's only price (100), so it must sort first - this would
@@ -220,7 +222,7 @@ class ProductRepositoryTest extends AbstractIntegrationTest {
         Product single = createProduct(testCategory, "Test Single Variant Product Desc", "test-sort-single-desc");
         createVariant(single, "TEST-SORT-SINGLE-DESC", new BigDecimal("100.00"), 5, true);
 
-        List<Long> order = search(null, null, false, ProductSort.PRICE_DESC).getContent().stream()
+        List<Long> order = search(null, testCategory.getSlug(), false, ProductSort.PRICE_DESC).getContent().stream()
                 .map(ProductCatalogRow::getId).toList();
 
         assertThat(order.indexOf(single.getId())).isLessThan(order.indexOf(multiVariant.getId()));

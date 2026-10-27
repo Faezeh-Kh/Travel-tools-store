@@ -36,8 +36,8 @@ type CartContextValue = {
     addItem: (productVariantId: number, quantity: number) => Promise<void>;
     updateQuantity: (itemId: number, quantity: number) => Promise<void>;
     removeItem: (itemId: number) => Promise<void>;
-    // Re-runs the initial load. The only way to recover if that load failed, since nothing else
-    // automatically retries it.
+    // Re-runs the initial load and shares the result with other tabs. The only way to recover if that load
+    // failed, since nothing else automatically retries it; also used after checkout emptied the cart.
     refresh: () => Promise<void>;
 };
 
@@ -65,13 +65,17 @@ export function CartProvider({children}: { children: ReactNode }) {
         };
     }, []);
 
-    const loadCart = useCallback(async () => {
+    // Resolves to the loaded cart, or null when loading failed (the failure is in loadError).
+    const loadCart = useCallback(async (): Promise<Cart | null> => {
         setIsLoading(true);
         try {
-            setCart(await getCart());
+            const loaded = await getCart();
+            setCart(loaded);
             setLoadError(null);
+            return loaded;
         } catch (err) {
             setLoadError(cartErrorMessage(err));
+            return null;
         } finally {
             setIsLoading(false);
         }
@@ -86,7 +90,15 @@ export function CartProvider({children}: { children: ReactNode }) {
         loadCart();
     }, [loadCart]);
 
-    const refresh = loadCart;
+    // Unlike the initial load, a refresh is shared with the other tabs: it is called after the cart changed
+    // on the server outside a cart mutation - checkout empties it - and every open tab's badge should show
+    // that. (The initial load doesn't broadcast: each tab loads its own on mount anyway.)
+    const refresh = useCallback(async () => {
+        const loaded = await loadCart();
+        if (loaded) {
+            syncChannelRef.current?.postMessage(loaded);
+        }
+    }, [loadCart]);
 
     const runMutation = useCallback(async (mutate: () => Promise<Cart>) => {
         if (isMutatingRef.current) {

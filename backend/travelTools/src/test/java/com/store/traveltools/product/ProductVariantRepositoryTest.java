@@ -97,4 +97,23 @@ class ProductVariantRepositoryTest extends AbstractIntegrationTest {
                 new ProductVariant(product, "TEST-NEGATIVE-STOCK", Map.of(), new BigDecimal("100.00"), -1, true)))
                 .isInstanceOf(DataIntegrityViolationException.class);
     }
+
+    @Test
+    void lockAllByIdOrderById_returnsOnlyTheRequestedVariantsSortedById() {
+        Product product = createTestProduct("test-lock-variants-product");
+        ProductVariant first = productVariantRepository.save(
+                new ProductVariant(product, "TEST-LOCK-1", Map.of(), new BigDecimal("100.00"), 10, true));
+        ProductVariant notRequested = productVariantRepository.save(
+                new ProductVariant(product, "TEST-LOCK-2", Map.of(), new BigDecimal("100.00"), 10, true));
+        ProductVariant third = productVariantRepository.save(
+                new ProductVariant(product, "TEST-LOCK-3", Map.of(), new BigDecimal("100.00"), 10, true));
+
+        // Requested in reverse: the result (and so the lock acquisition order) must still be ascending by id.
+        List<ProductVariant> locked = productVariantRepository.lockAllByIdOrderById(
+                List.of(third.getId(), first.getId()));
+
+        assertThat(locked).extracting(ProductVariant::getId)
+                .containsExactly(first.getId(), third.getId())
+                .doesNotContain(notRequested.getId());
+    }
 }

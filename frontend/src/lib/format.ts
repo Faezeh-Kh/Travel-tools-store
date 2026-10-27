@@ -14,3 +14,16 @@ export function formatPriceRange(minPrice: number | null, maxPrice: number | nul
 
     return `${minPrice.toLocaleString("fa-IR")} تا ${formatPrice(maxPrice)}`;
 }
+
+// A moment from the API (an ISO-8601 instant) as Persian date and time, e.g. "۵ آبان ۱۴۰۵ ساعت ۱۳:۳۰". fa-IR uses
+// the Solar Hijri calendar. The time zone is fixed to Iran's: the page is rendered on the server, whose own
+// time zone must not decide what the shopper sees.
+const DATE_TIME_FORMAT = new Intl.DateTimeFormat("fa-IR", {
+    dateStyle: "long",
+    timeStyle: "short",
+    timeZone: "Asia/Tehran",
+});
+
+export function formatDateTime(isoInstant: string): string {
+    return DATE_TIME_FORMAT.format(new Date(isoInstant));
+}
