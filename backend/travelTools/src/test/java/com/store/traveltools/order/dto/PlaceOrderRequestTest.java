@@ -125,6 +125,31 @@ class PlaceOrderRequestTest {
         assertThat(invalidFields(validWith("postalCode", postalCode))).containsExactly("postalCode");
     }
 
+    // Persian and English letters, a combining mark (the shadda in "محمّد"), spaces between words, and the
+    // zero-width non-joiner inside a Persian word.
+    @ParameterizedTest
+    @ValueSource(strings = {"محمّد", "Ali", "بندر انزلی", "عبدالله\u200Cزاده"})
+    void lettersOnlyFields_acceptLettersMarksSpacesAndZeroWidthNonJoiner(String value) {
+        assertThat(invalidFields(validWith("firstName", value))).isEmpty();
+        assertThat(invalidFields(validWith("lastName", value))).isEmpty();
+        assertThat(invalidFields(validWith("city", value))).isEmpty();
+    }
+
+    // ASCII and Persian digits, and punctuation, including markup characters.
+    @ParameterizedTest
+    @ValueSource(strings = {"علی2", "علی۲", "Ali!", "علی-رضا", "<b>Ali</b>", "Ali_1"})
+    void lettersOnlyField_withDigitsOrPunctuation_isInvalid(String value) {
+        assertThat(invalidFields(validWith("firstName", value))).containsExactly("firstName");
+        assertThat(invalidFields(validWith("lastName", value))).containsExactly("lastName");
+        assertThat(invalidFields(validWith("city", value))).containsExactly("city");
+    }
+
+    // The address may contain digits and punctuation (house numbers, commas); only names and the city may not.
+    @Test
+    void address_acceptsDigitsAndPunctuation() {
+        assertThat(invalidFields(validWith("address", "خیابان آزادی، پلاک ۱۰، واحد 3-B"))).isEmpty();
+    }
+
     // Each limit matches its V6 column: exactly the limit passes, one character more fails.
     @ParameterizedTest
     @CsvSource({"firstName, 100", "lastName, 100", "address, 500", "city, 100", "notes, 1000"})

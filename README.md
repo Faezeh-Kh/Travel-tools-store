@@ -200,14 +200,16 @@ the order.
 
 | Field | Rule |
 | --- | --- |
-| `firstName`, `lastName` | Required, max 100 characters. |
+| `firstName`, `lastName` | Required, max 100 characters, letters only (see below). |
 | `phoneNumber` | Required Iranian mobile number: `09` followed by 9 digits. |
 | `address` | Required, max 500 characters. |
-| `city` | Required, max 100 characters. |
+| `city` | Required, max 100 characters, letters only (see below). Not checked against a list of cities. |
 | `postalCode` | Required, 10 digits. |
 | `notes` | Optional, max 1000 characters. |
 
-Surrounding whitespace is removed, and `phoneNumber`/`postalCode` also accept Persian or Arabic digits with spaces or
+"Letters only" means letters of any script (Persian or English), combining marks, spaces, and the zero-width
+non-joiner (U+200C) used inside Persian words; digits and punctuation are rejected. Surrounding whitespace is
+removed, and `phoneNumber`/`postalCode` also accept Persian or Arabic digits with spaces or
 hyphens between digit groups (normalized before validation). Checkout locks the cart and its variant rows, re-checks
 availability and stock, reduces stock, snapshots each item at its current price, and empties the cart (the cart and
 its cookie remain for the next purchase), all in one transaction. 404 when there is no cart; 409 (`CONFLICT`) when the

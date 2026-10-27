@@ -250,7 +250,7 @@ describe("CheckoutForm submission", () => {
         const city = screen.getByLabelText("شهر");
         expect(city).toHaveAttribute("aria-invalid", "true");
         expect(city).toHaveAccessibleDescription(
-            `لطفاً شهر را وارد کنید (حداکثر ${MAX_LENGTHS.city.toLocaleString("fa-IR")} نویسه).`,
+            `لطفاً شهر را فقط با حروف وارد کنید (حداکثر ${MAX_LENGTHS.city.toLocaleString("fa-IR")} نویسه).`,
         );
         const postalCode = screen.getByLabelText("کد پستی");
         expect(postalCode).toHaveAttribute("aria-invalid", "true");

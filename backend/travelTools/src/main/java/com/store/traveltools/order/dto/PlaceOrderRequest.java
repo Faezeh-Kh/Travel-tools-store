@@ -6,14 +6,19 @@ import jakarta.validation.constraints.Size;
 
 // Size limits match the V6 columns, so oversized input is a 400 rather than a database error.
 public record PlaceOrderRequest(
-        @NotBlank @Size(max = 100) String firstName,
-        @NotBlank @Size(max = 100) String lastName,
+        @NotBlank @Size(max = 100) @Pattern(regexp = LETTERS_ONLY) String firstName,
+        @NotBlank @Size(max = 100) @Pattern(regexp = LETTERS_ONLY) String lastName,
         // An Iranian mobile number: 09 followed by 9 digits.
         @NotBlank @Pattern(regexp = "09\\d{9}") String phoneNumber,
         @NotBlank @Size(max = 500) String address,
-        @NotBlank @Size(max = 100) String city,
+        @NotBlank @Size(max = 100) @Pattern(regexp = LETTERS_ONLY) String city,
         @NotBlank @Pattern(regexp = "\\d{10}") String postalCode,
         @Size(max = 1000) String notes) {
+
+    // Names and the city: letters of any script (Persian and English alike), combining marks such as the
+    // shadda in "محمّد", spaces, and the zero-width non-joiner Persian uses inside words ("عبدالله‌زاده").
+    // Digits and punctuation are rejected. The frontend's checkoutValidation.ts applies the same pattern.
+    static final String LETTERS_ONLY = "[\\p{L}\\p{M}\\u200C ]+";
 
     // Runs when Jackson builds the record from the request body, before Bean Validation checks it, so the
     // rules above see normalized input whichever client sent it: surrounding whitespace is removed, and the

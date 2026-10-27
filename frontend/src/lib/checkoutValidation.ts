@@ -18,6 +18,17 @@ const REQUIRED_MESSAGES: Record<Exclude<CheckoutField, "notes">, string> = {
 export const PHONE_NUMBER_MESSAGE = "شماره موبایل باید ۱۱ رقم و با ۰۹ شروع شود.";
 export const POSTAL_CODE_MESSAGE = "کد پستی باید ۱۰ رقم باشد.";
 
+// Names and the city: letters of any script (Persian and English alike), combining marks such as the shadda
+// in "محمّد", spaces, and the zero-width non-joiner Persian uses inside words. Digits and punctuation are
+// rejected. The same pattern as the backend's PlaceOrderRequest.LETTERS_ONLY; the u flag enables \p{...}.
+const LETTERS_ONLY = /^[\p{L}\p{M}\u200C ]+$/u;
+
+const LETTERS_ONLY_MESSAGES: Record<"firstName" | "lastName" | "city", string> = {
+    firstName: "نام فقط می‌تواند شامل حروف باشد.",
+    lastName: "نام خانوادگی فقط می‌تواند شامل حروف باشد.",
+    city: "نام شهر فقط می‌تواند شامل حروف باشد.",
+};
+
 // The inputs' maxLength. For the text fields these are the backend's @Size limits; phone number and postal
 // code have no length limit of their own (their format decides), so theirs only leave room for the spaces
 // and hyphens a shopper may type between digit groups.
@@ -35,15 +46,19 @@ function requiredWithLimit(label: string, field: CheckoutField): string {
     return `لطفاً ${label} را وارد کنید (حداکثر ${MAX_LENGTHS[field].toLocaleString("fa-IR")} نویسه).`;
 }
 
+function lettersOnlyWithLimit(label: string, field: CheckoutField): string {
+    return `لطفاً ${label} را فقط با حروف وارد کنید (حداکثر ${MAX_LENGTHS[field].toLocaleString("fa-IR")} نویسه).`;
+}
+
 // Shown on a field the backend rejected although the checks above let it through. The backend's own messages
 // are English Bean Validation defaults and carry no stable code, so instead of parsing them, each field gets
 // the full rule it must meet - the backend checks no other rule on it.
 export const SERVER_REJECTION_MESSAGES: Record<CheckoutField, string> = {
-    firstName: requiredWithLimit("نام", "firstName"),
-    lastName: requiredWithLimit("نام خانوادگی", "lastName"),
+    firstName: lettersOnlyWithLimit("نام", "firstName"),
+    lastName: lettersOnlyWithLimit("نام خانوادگی", "lastName"),
     phoneNumber: PHONE_NUMBER_MESSAGE,
     address: requiredWithLimit("نشانی", "address"),
-    city: requiredWithLimit("شهر", "city"),
+    city: lettersOnlyWithLimit("شهر", "city"),
     postalCode: POSTAL_CODE_MESSAGE,
     notes: `توضیحات حداکثر ${MAX_LENGTHS.notes.toLocaleString("fa-IR")} نویسه می‌تواند داشته باشد.`,
 };
@@ -70,6 +85,13 @@ export function validateCheckout(values: PlaceOrderRequest): CheckoutErrors {
     for (const field of Object.keys(REQUIRED_MESSAGES) as (keyof typeof REQUIRED_MESSAGES)[]) {
         if (values[field].trim() === "") {
             errors[field] = REQUIRED_MESSAGES[field];
+        }
+    }
+
+    for (const field of Object.keys(LETTERS_ONLY_MESSAGES) as (keyof typeof LETTERS_ONLY_MESSAGES)[]) {
+        // trim(): the backend strips surrounding whitespace before checking, so only the inner text counts.
+        if (!errors[field] && !LETTERS_ONLY.test(values[field].trim())) {
+            errors[field] = LETTERS_ONLY_MESSAGES[field];
         }
     }
 

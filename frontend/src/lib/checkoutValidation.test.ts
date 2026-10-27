@@ -74,6 +74,33 @@ describe("validateCheckout", () => {
     ])("rejects a postal code of %s", (_, postalCode) => {
         expect(validateCheckout({...validValues, postalCode})).toEqual({postalCode: POSTAL_CODE_MESSAGE});
     });
+    // Persian and English letters, a combining mark (the shadda in "محمّد"), spaces between words, and the
+    // zero-width non-joiner inside a Persian word. Surrounding spaces are ignored, as the backend strips them.
+    it.each(["محمّد", "Ali", "بندر انزلی", "عبدالله\u200Cزاده", " علی "])(
+        "accepts %s as a first name, last name, and city",
+        (value) => {
+            expect(validateCheckout({...validValues, firstName: value, lastName: value, city: value})).toEqual({});
+        },
+    );
+
+    it.each(["علی2", "علی۲", "Ali!", "علی-رضا", "<b>Ali</b>", "Ali_1"])(
+        "rejects %s as a first name, last name, or city",
+        (value) => {
+            expect(validateCheckout({...validValues, firstName: value, lastName: value, city: value})).toEqual({
+                firstName: "نام فقط می‌تواند شامل حروف باشد.",
+                lastName: "نام خانوادگی فقط می‌تواند شامل حروف باشد.",
+                city: "نام شهر فقط می‌تواند شامل حروف باشد.",
+            });
+        },
+    );
+
+    it("reports an empty name as missing, not as containing non-letters", () => {
+        expect(validateCheckout({...validValues, firstName: "  "})).toEqual({firstName: "لطفاً نام را وارد کنید."});
+    });
+
+    it("accepts digits and punctuation in the address", () => {
+        expect(validateCheckout({...validValues, address: "خیابان آزادی، پلاک ۱۰، واحد 3-B"})).toEqual({});
+    });
 });
 
 describe("SERVER_REJECTION_MESSAGES", () => {
@@ -83,6 +110,10 @@ describe("SERVER_REJECTION_MESSAGES", () => {
             expect(SERVER_REJECTION_MESSAGES[field]).toContain(MAX_LENGTHS[field].toLocaleString("fa-IR"));
         },
     );
+
+    it.each(["firstName", "lastName", "city"] as const)("says %s may only contain letters", (field) => {
+        expect(SERVER_REJECTION_MESSAGES[field]).toContain("فقط با حروف");
+    });
 
     it("describes phone number and postal code by their format, as the client-side check does", () => {
         expect(SERVER_REJECTION_MESSAGES.phoneNumber).toBe(PHONE_NUMBER_MESSAGE);
