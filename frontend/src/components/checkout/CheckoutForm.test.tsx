@@ -2,10 +2,13 @@ import {beforeEach, describe, expect, it, vi} from "vitest";
 import {act, fireEvent, render, screen, waitFor} from "@testing-library/react";
 import type {Order} from "@/lib/api/types";
 
-const {placeOrder, refresh, replace} = vi.hoisted(() => ({
+const {placeOrder, refresh, replace, cartState} = vi.hoisted(() => ({
     placeOrder: vi.fn(),
     refresh: vi.fn(),
     replace: vi.fn(),
+    // The cart's load state as useCart() reports it; a test changes it, then re-renders, to put the form
+    // in front of a cart that is reloading or failed to reload.
+    cartState: {isLoading: false, loadError: null as string | null},
 }));
 
 // Partial mock: keeps the real OrderError, so the form's `instanceof OrderError` checks see the same class
@@ -14,7 +17,7 @@ vi.mock("@/lib/api/orders", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/lib/api/orders")>()),
     placeOrder,
 }));
-vi.mock("@/components/cart/CartProvider", () => ({useCart: () => ({refresh})}));
+vi.mock("@/components/cart/CartProvider", () => ({useCart: () => ({refresh, ...cartState})}));
 vi.mock("next/navigation", () => ({useRouter: () => ({replace})}));
 
 import {OrderError} from "@/lib/api/orders";
@@ -39,6 +42,8 @@ const placedOrder: Order = {
 beforeEach(() => {
     vi.clearAllMocks();
     refresh.mockResolvedValue(undefined);
+    cartState.isLoading = false;
+    cartState.loadError = null;
 });
 
 function deferred<T>() {
@@ -242,6 +247,61 @@ describe("CheckoutForm submission", () => {
             expect(replace).not.toHaveBeenCalled();
         },
     );
+
+    it("holds the submit lock after a cart failure until the cart reload has finished", async () => {
+        const reload = deferred<void>();
+        refresh.mockReturnValue(reload.promise);
+        placeOrder.mockRejectedValue(new OrderError("CONFLICT", "Only 1 unit(s) of TENT-3P-GRN are available."));
+        const {container} = render(<CheckoutForm />);
+
+        fillValidForm();
+        submit();
+        await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("سبد خرید شما تغییر کرده است"));
+
+        // The reload is still running: neither the button nor a direct form submit can place another order.
+        expect(submitButton()).toBeDisabled();
+        expect(submitButton()).toHaveTextContent("ثبت سفارش");
+        expect(submitButton()).not.toHaveTextContent("در حال ثبت سفارش");
+        fireEvent.submit(container.querySelector("form")!);
+        expect(placeOrder).toHaveBeenCalledOnce();
+
+        await act(async () => reload.resolve());
+        expect(submitButton()).toBeEnabled();
+    });
+
+    it("says the cart is being updated, and blocks submitting, while the cart reloads", () => {
+        cartState.isLoading = true;
+        const {container} = render(<CheckoutForm />);
+
+        fillValidForm();
+        fireEvent.submit(container.querySelector("form")!);
+
+        expect(screen.getByRole("status")).toHaveTextContent("در حال به‌روزرسانی سبد خرید");
+        expect(submitButton()).toBeDisabled();
+        expect(placeOrder).not.toHaveBeenCalled();
+    });
+
+    it("blocks submitting and offers a retry when the cart failed to reload", () => {
+        cartState.loadError = "خطایی رخ داد.";
+        const {container, rerender} = render(<CheckoutForm />);
+
+        fillValidForm();
+        fireEvent.submit(container.querySelector("form")!);
+
+        expect(screen.getByRole("alert")).toHaveTextContent("سبد خرید به‌روز نشد");
+        expect(submitButton()).toBeDisabled();
+        expect(placeOrder).not.toHaveBeenCalled();
+
+        fireEvent.click(screen.getByRole("button", {name: "تلاش دوباره"}));
+        expect(refresh).toHaveBeenCalledOnce();
+
+        // Once the cart is current again, the shopper can submit; what they typed is still there.
+        cartState.loadError = null;
+        rerender(<CheckoutForm />);
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+        expect(submitButton()).toBeEnabled();
+        expect(screen.getByLabelText("نام")).toHaveValue("سارا");
+    });
 
     it("shows a generic, dismissible error for a network failure", async () => {
         placeOrder.mockRejectedValue(new TypeError("Failed to fetch"));

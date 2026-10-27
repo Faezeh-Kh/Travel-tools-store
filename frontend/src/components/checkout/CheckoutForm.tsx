@@ -134,7 +134,11 @@ function Field({
 
 export function CheckoutForm() {
     const router = useRouter();
-    const {refresh: refreshCart} = useCart();
+    const {refresh: refreshCart, isLoading: isCartLoading, loadError: cartLoadError} = useCart();
+    // After a "cart changed" failure the form reloads the cart. Until that reload succeeds, the summary
+    // beside the form still shows the old cart, so no order may be placed: the shopper would be ordering
+    // contents they haven't seen. A failed reload keeps the form blocked and offers a retry instead.
+    const isCartCurrent = !isCartLoading && cartLoadError === null;
     const [values, setValues] = useState<PlaceOrderRequest>(EMPTY_VALUES);
     const [errors, setErrors] = useState<CheckoutErrors>({});
     // Errors appear only after the first submit attempt, so the shopper isn't told off while still typing.
@@ -162,7 +166,8 @@ export function CheckoutForm() {
     async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
         // Stop the browser's own full-page form submission; this component handles submitting itself.
         event.preventDefault();
-        if (isSubmittingRef.current) {
+        // The disabled button already blocks a click; this also covers submitting with Enter.
+        if (isSubmittingRef.current || !isCartCurrent) {
             return;
         }
         // Kept before the first `await`: React clears event.currentTarget once the handler has yielded.
@@ -183,18 +188,20 @@ export function CheckoutForm() {
         try {
             order = await placeOrder(values);
         } catch (err) {
-            isSubmittingRef.current = false;
-            setIsSubmitting(false);
             const described = describeFailure(err);
             setFailure(described.failure);
             if (described.failure === "validation") {
                 setErrors(described.fieldErrors);
                 focusFirstInvalid(form, described.fieldErrors);
             } else if (described.failure === "cart") {
-                // The cart on the server is no longer what this tab shows; reload it so the shopper sees
-                // what changed when they follow the link back to the cart.
-                void refreshCart();
+                // The cart on the server is no longer what this tab shows; reload it so the summary shows
+                // what changed. The submit lock is held until the reload has finished, so there is no moment
+                // in which the order could be retried against the old cart. (If the reload fails,
+                // isCartCurrent keeps the button disabled after the lock is released.)
+                await refreshCart();
             }
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
             return;
         }
 
@@ -246,12 +253,33 @@ export function CheckoutForm() {
                     {failure === "generic" && "ثبت سفارش انجام نشد. لطفاً دوباره تلاش کنید."}
                 </ErrorAlert>
             )}
+            {isCartLoading && (
+                <p role="status" className="text-sm text-zinc-500 dark:text-zinc-400">
+                    در حال به‌روزرسانی سبد خرید...
+                </p>
+            )}
+            {cartLoadError && (
+                <div className="flex flex-col items-start gap-2">
+                    <ErrorAlert>
+                        سبد خرید به‌روز نشد، بنابراین فعلاً نمی‌توان سفارش را ثبت کرد. لطفاً دوباره تلاش کنید.
+                    </ErrorAlert>
+                    <button
+                        type="button"
+                        onClick={() => void refreshCart()}
+                        className="rounded-full border border-accent px-5 py-2 text-sm text-accent hover:bg-accent/10"
+                    >
+                        تلاش دوباره
+                    </button>
+                </div>
+            )}
             <button
                 type="submit"
-                disabled={isSubmitting}
+                disabled={isSubmitting || !isCartCurrent}
                 className="self-start rounded-full bg-accent px-10 py-3 text-base font-semibold text-accent-foreground enabled:hover:bg-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
-                {isSubmitting ? "در حال ثبت سفارش…" : "ثبت سفارش"}
+                {/* After a cart failure the lock is still held while the cart reloads; that isn't "placing the
+                    order", and the status message above already says what is happening. */}
+                {isSubmitting && failure === null ? "در حال ثبت سفارش…" : "ثبت سفارش"}
             </button>
         </form>
     );
