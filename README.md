@@ -2,8 +2,7 @@
 
 A production-oriented travel/camping/outdoor store MVP for Persian-speaking customers, built as a maintainable Spring Boot learning and public portfolio project. See `PROJECT.md` for the domain contract and delivery phases, and `CLAUDE.md` for engineering conventions.
 
-**Status:** Phases 1–5 (Foundation through Cart) are functionally complete; Phase 6 (Checkout/orders) is in progress:
-the backend order API is implemented, the checkout and confirmation pages are not yet.
+**Status:** Phases 1–6 (Foundation through Checkout/orders) are functionally complete.
 
 - **Storefront and discovery:** home, catalog, product/category detail pages with a photo gallery and variant
   selection, site-wide header/footer, and a static contact page — Persian/RTL throughout, prices in Toman. The catalog
@@ -11,12 +10,15 @@ the backend order API is implemented, the checkout and confirmation pages are no
 - **Cart:** an anonymous, cookie-identified cart with add/update/remove, server-calculated totals, and advisory stock
   checks. Concurrent mutations of the same cart are serialized with a pessimistic lock. The frontend shows a header
   badge, a cart page, and add-to-cart on product pages, kept in sync across browser tabs.
-- **Checkout/orders (backend):** placing an order from the cart with authoritative stock checks (locked variant rows),
-  stock reduction, purchase-time item snapshots, `TT-` order numbers, and a confirmation lookup by a secret access token.
+- **Checkout/orders:** placing an order from the cart with authoritative stock checks (locked variant rows), stock
+  reduction, purchase-time item snapshots, `TT-` order numbers, and a confirmation lookup by a secret access token. The
+  frontend has a checkout page (contact/delivery form with Persian validation next to an order summary) and an order
+  confirmation page that can be printed or saved as PDF.
 - **Development data:** a dev-only catalog seed generated from a product sheet (see below).
 
-The checkout frontend (Phase 6), administration with authentication (Phase 7), and hardening (Phase 8) are not started.
-Until Phase 7, there is no admin UI or authentication; catalog data comes from migrations and the dev seed.
+Administration with authentication (Phase 7) and hardening (Phase 8) are not started. Until Phase 7, there is no admin
+UI or authentication: catalog data comes from migrations and the dev seed, and orders stay `PENDING` because nothing
+can change their status yet. There is no online payment; order creation is kept separate from payment for later.
 
 ## Architecture and stack
 
@@ -193,8 +195,8 @@ The response is `{items, page, size, totalElements, totalPages}`.
 refreshed on every mutation. All cart endpoints return the full cart (`{id, items, subtotal, totalPrice}`). Prices and
 totals are always calculated on the server from current variant prices and never taken from the client. Requests for
 an unknown, inactive, or not-owned variant, cart, or item return 404. A quantity above the variant's current stock
-returns 409. This stock check is advisory feedback, not a reservation. Checkout must re-validate stock when it creates
-the order.
+returns 409. This stock check is advisory feedback, not a reservation: checkout re-validates stock when it creates the
+order (see the order contract below).
 
 **Order contract.** `POST /api/orders` takes `{firstName, lastName, phoneNumber, address, city, postalCode, notes}`:
 
