@@ -8,6 +8,8 @@ import {cartErrorMessage} from "@/lib/cartErrorMessages";
 import {formatPrice} from "@/lib/format";
 import {TrashIcon} from "@/components/icons/TrashIcon";
 import {ErrorAlert} from "@/components/ErrorAlert";
+import {CartLoadError} from "@/components/cart/CartLoadError";
+import {EmptyCart} from "@/components/cart/EmptyCart";
 import type {CartItem} from "@/lib/api/types";
 
 // enabled:hover (not plain hover): :disabled doesn't block :hover from matching on its own, so an
@@ -162,35 +164,6 @@ function CartItemRow({
                 </div>
             </div>
         </li>
-    );
-}
-
-function CartLoadError({message, onRetry}: {message: string; onRetry: () => void}) {
-    return (
-        <div className="flex flex-col items-start gap-3 text-zinc-500 dark:text-zinc-400">
-            <p>{message}</p>
-            <button
-                type="button"
-                onClick={onRetry}
-                className="rounded-full bg-accent px-5 py-2 text-accent-foreground hover:bg-accent-hover"
-            >
-                تلاش دوباره
-            </button>
-        </div>
-    );
-}
-
-function EmptyCart() {
-    return (
-        <div className="flex flex-col items-start gap-3 text-zinc-500 dark:text-zinc-400">
-            <p>سبد خرید شما خالی است.</p>
-            <Link
-                href="/products"
-                className="rounded-full bg-accent px-5 py-2 text-accent-foreground hover:bg-accent-hover"
-            >
-                مشاهده محصولات
-            </Link>
-        </div>
     );
 }
 
