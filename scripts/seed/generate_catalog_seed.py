@@ -27,7 +27,7 @@ from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-OUTPUT_FILE = REPO_ROOT / "backend/travelTools/src/main/resources/db/seed/R__dev_catalog_seed.sql"
+OUTPUT_FILE = REPO_ROOT / "backend/src/main/resources/db/seed/R__dev_catalog_seed.sql"
 PRODUCT_IMAGES_DIR = REPO_ROOT / "frontend/public/images/products"
 CATEGORY_IMAGES_DIR = REPO_ROOT / "frontend/public/images/categories"
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
