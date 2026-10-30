@@ -24,7 +24,7 @@ can change their status yet. There is no online payment; order creation is kept 
 
 Monorepo with two independently runnable applications:
 
-- `backend/travelTools` — Java 21, Spring Boot 4, Spring Web (MVC), Spring Data JPA, Bean Validation, Flyway, PostgreSQL, Maven.
+- `backend` — Java 21, Spring Boot 4, Spring Web (MVC), Spring Data JPA, Bean Validation, Flyway, PostgreSQL, Maven.
 - `frontend` — Next.js (App Router), React, strict TypeScript, Tailwind CSS.
 
 Local infrastructure (PostgreSQL) runs via Docker Compose; both applications run directly on the developer machine.
@@ -71,7 +71,7 @@ Stop it with `docker compose down` (add `-v` to also drop the data volume).
 ## Backend
 
 ```bash
-cd backend/travelTools
+cd backend
 ./mvnw spring-boot:run
 ```
 
@@ -116,7 +116,7 @@ Sheet rules, which the script checks and reports by row number:
 ### Backend tests
 
 ```bash
-cd backend/travelTools
+cd backend
 ./mvnw test
 ```
 
@@ -125,7 +125,7 @@ Integration tests boot the full Spring context against a real, ephemeral Postgre
 ### Backend build
 
 ```bash
-cd backend/travelTools
+cd backend
 ./mvnw clean verify
 ```
 
