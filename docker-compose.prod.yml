@@ -28,9 +28,6 @@ services:
       DB_NAME: ${DB_NAME:-travel_tools}
       DB_USER: ${DB_USER:-travel_tools}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-    # to be removed once caddy is configured
-    ports:
-      - "127.0.0.1:8080:8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -44,5 +41,19 @@ services:
     depends_on:
       - backend
 
+  caddy:
+    image: caddy:2.11-alpine
+    ports:
+      - "127.0.0.1:80:80"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
 volumes:
   postgres_data:
+  caddy_data:
+  caddy_config:
