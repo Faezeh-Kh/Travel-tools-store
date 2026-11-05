@@ -35,5 +35,14 @@ services:
       postgres:
         condition: service_healthy
 
+  frontend:
+    image: traveltools-frontend:local
+    build:
+      context: ./frontend
+    environment:
+      API_BASE_URL: "http://backend:8080"
+    depends_on:
+      - backend
+
 volumes:
   postgres_data:
