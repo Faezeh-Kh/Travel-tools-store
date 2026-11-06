@@ -28,6 +28,7 @@ Monorepo with two independently runnable applications:
 - `frontend` — Next.js (App Router), React, strict TypeScript, Tailwind CSS.
 
 Local infrastructure (PostgreSQL) runs via Docker Compose; both applications run directly on the developer machine.
+To run everything in containers behind a reverse proxy, see [Production stack](#production-stack).
 
 ## Prerequisites
 
@@ -156,6 +157,49 @@ npm run lint
 npx tsc --noEmit
 npm run build
 ```
+
+## Production stack
+
+`docker-compose.prod.yml` runs the whole application in containers. It has not been deployed to a server yet: as
+configured, it serves plain HTTP on the local machine only, so use it to check the production images and routing.
+
+| Service | Role | Reachable from |
+| --- | --- | --- |
+| `caddy` | Reverse proxy and single entry point: `/api/*` goes to `backend`, everything else to `frontend` | `http://localhost` (port 80, bound to `127.0.0.1`) |
+| `frontend` | Next.js standalone server, including the product images in `public/` | Inside the Compose network only |
+| `backend` | Spring Boot API; applies Flyway migrations on startup | Inside the Compose network only |
+| `postgres` | PostgreSQL 18, with data in a named volume | Inside the Compose network only |
+
+Start it from the repository root (`DB_PASSWORD` must be set, for example in `.env`, or Compose refuses to start):
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+Stop it with `docker compose -f docker-compose.prod.yml down` (add `-v` to also drop the database and Caddy volumes).
+The stack has its own Compose project name, so it does not share containers or the database volume with the
+development `docker-compose.yml`.
+
+Behavior worth knowing:
+
+- **One origin:** the browser reaches the frontend and the API through Caddy, so its API calls are relative
+  (`/api/...`) and need no CORS. Server-side rendering calls the backend directly at `http://backend:8080`.
+- **Build-time setting:** `NEXT_PUBLIC_API_BASE_URL` is compiled into the browser bundle, so it is a Docker build
+  argument. Leave it empty for this stack; changing it requires rebuilding the frontend image.
+- **Passed-through variables:** containers only receive the variables listed in the Compose file. Of the backend
+  settings, that is only the `DB_*` values, and `DB_HOST`/`DB_PORT` are fixed to the `postgres` service. Setting
+  `CART_COOKIE_SECURE` in `.env` alone has no effect.
+- **Catalog data:** the `dev` profile is not active, so the stack contains only what the versioned migrations create,
+  including the V2 sample products, and not the development catalog seed.
+
+Before running it on a real server:
+
+- Replace `http://localhost` in `deploy/Caddyfile` with the domain so Caddy can obtain HTTPS certificates, and publish
+  ports `80` and `443` publicly.
+- Add `CART_COOKIE_SECURE: "true"` to the `backend` environment.
+- Add a restart policy to the services and schedule database backups.
+- Use a strong `DB_PASSWORD` before the first start. PostgreSQL only reads it when the data volume is first created.
+- Deactivate the V2 sample products (admin management arrives in Phase 7).
 
 ## API documentation
 
