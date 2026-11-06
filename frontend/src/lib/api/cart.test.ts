@@ -36,6 +36,23 @@ function mockFetchOnce(response: Partial<Response>) {
 
 afterEach(() => {
     vi.unstubAllGlobals();
+    vi.unstubAllEnvs();
+});
+
+// The production image is built with an empty NEXT_PUBLIC_API_BASE_URL: the browser must then call the
+// API on its own origin, where the reverse proxy routes /api to the backend.
+describe("same-origin deployment", () => {
+    it("requests a relative path when the public API base URL is empty", async () => {
+        vi.stubEnv("NEXT_PUBLIC_API_BASE_URL", "");
+        // config.ts reads the variable when it is first imported, so import fresh copies after stubbing it.
+        vi.resetModules();
+        const {getCart: getCartSameOrigin} = await import("./cart");
+        const fetchMock = mockFetchOnce({});
+
+        await getCartSameOrigin();
+
+        expect(fetchMock).toHaveBeenCalledWith("/api/cart", {credentials: "include"});
+    });
 });
 
 describe("getCart", () => {

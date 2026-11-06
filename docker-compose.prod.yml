@@ -1,0 +1,59 @@
+# Own project name: without it Compose names the project after the folder, the same as docker-compose.yml,
+# so this stack would share the dev database volume and replace the dev containers.
+name: travel-tools-prod
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: ${DB_NAME:-travel_tools}
+      POSTGRES_USER: ${DB_USER:-travel_tools}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    healthcheck:
+      # The command is a PostgreSQL utility that checks whether the database server is accepting connections.
+      test: [ "CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    image: traveltools-backend:local
+    build:
+      context: ./backend
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-travel_tools}
+      DB_USER: ${DB_USER:-travel_tools}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    image: traveltools-frontend:local
+    build:
+      context: ./frontend
+    environment:
+      API_BASE_URL: "http://backend:8080"
+    depends_on:
+      - backend
+
+  caddy:
+    image: caddy:2.11.8-alpine
+    ports:
+      - "127.0.0.1:80:80"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:
